@@ -526,7 +526,7 @@ let savedCities = JSON.parse(localStorage.getItem('heliosCities') || '[]');
 // ============================================================
 
 function getScoreLabel(score) {
-    if (score >= 4.5) return '☀️ Excellent';
+    if (score >= 4.0) return '☀️ Excellent';
     if (score >= 3.5) return '🌤️ Great';
     if (score >= 2.5) return '⛅ Good';
     if (score >= 1.5) return '🌥️ Moderate';
@@ -536,7 +536,7 @@ function getScoreLabel(score) {
 }
 
 function getScoreColorClass(score) {
-    if (score >= 4.5) return 'excellent';
+    if (score >= 4.0) return 'excellent';
     if (score >= 3.5) return 'great';
     if (score >= 2.5) return 'good';
     if (score >= 1.5) return 'moderate';
@@ -781,7 +781,7 @@ async function showCityDetail(city) {
         let type;
         
         if (h.score === 0) type = 'night';
-        else if (h.score >= 4.5) type = 'sunny';
+        else if (h.score >= 4.0) type = 'sunny';
         else if (h.score >= 3.5) type = 'partly-cloudy';
         else if (h.score >= 2) type = 'cloudy';
         else type = 'rainy';
@@ -870,7 +870,7 @@ async function showCityDetail(city) {
                 <div class="forecast-score ${day.avgScore > 0 ? getScoreColorClass(day.avgScore) : ''}">${day.avgScore > 0 ? day.avgScore.toFixed(1) : 'N/A'}</div>
                 <div>
                     ${day.maxTemp}°F / ${day.minTemp}°F<br>
-                    <span style="font-size: 13px; color: #666;">Peak: ${day.peakScore} at ${day.peakHour === 0 ? '12 AM' : day.peakHour === 12 ? '12 PM' : day.peakHour > 12 ? (day.peakHour - 12) + ' PM' : day.peakHour + ' AM'}</span><br>
+                    <span style="font-size: 13px; color: #666;">Peak Helios Score: ${day.peakScore} at ${day.peakHour === 0 ? '12 AM' : day.peakHour === 12 ? '12 PM' : day.peakHour > 12 ? (day.peakHour - 12) + ' PM' : day.peakHour + ' AM'}</span><br>
                     <span style="font-size: 13px; color: #666;">${day.daylightHours} hrs daylight</span>
                 </div>
             </div>
