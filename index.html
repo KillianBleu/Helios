@@ -205,12 +205,14 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
-        .helio-score-circle.excellent { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .helio-score-circle.great { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-        .helio-score-circle.good { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-        .helio-score-circle.moderate { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-        .helio-score-circle.fair { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-        .helio-score-circle.poor { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+        .helio-score-circle.excellent { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); } /* Bright deep yellow */
+        .helio-score-circle.great { background: linear-gradient(135deg, #FFE55C 0%, #FFB84D 100%); } /* General yellow */
+        .helio-score-circle.good { background: linear-gradient(135deg, #FFB6C1 0%, #FF69B4 100%); } /* Light purple/red */
+        .helio-score-circle.moderate { background: linear-gradient(135deg, #DDA0DD 0%, #BA55D3 100%); } /* Deeper red/purple */
+        .helio-score-circle.fair { background: linear-gradient(135deg, #B0C4DE 0%, #6A5ACD 100%); } /* Light purple blue */
+        .helio-score-circle.poor { background: linear-gradient(135deg, #708090 0%, #483D8B 100%); } /* Deeper purple blue */
+        .helio-score-circle.verypoor { background: linear-gradient(135deg, #696969 0%, #556B2F 100%); } /* Light dark bluish brown */
+        .helio-score-circle.dismal { background: linear-gradient(135deg, #2F4F4F 0%, #3E2723 100%); } /* Dark bluish brown */
         .helio-score-circle.night { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); }
 
         .city-stats {
@@ -367,12 +369,14 @@
             margin: 8px 0;
         }
 
-        .hourly-score.excellent { color: #667eea; }
-        .hourly-score.great { color: #f5576c; }
-        .hourly-score.good { color: #4facfe; }
-        .hourly-score.moderate { color: #43e97b; }
-        .hourly-score.fair { color: #fa709a; }
-        .hourly-score.poor { color: #30cfd0; }
+        .hourly-score.excellent { color: #FFD700; } /* Bright yellow */
+        .hourly-score.great { color: #FFE55C; } /* Yellow */
+        .hourly-score.good { color: #FFB6C1; } /* Light purple/red */
+        .hourly-score.moderate { color: #DDA0DD; } /* Deeper red/purple */
+        .hourly-score.fair { color: #B0C4DE; } /* Light purple blue */
+        .hourly-score.poor { color: #708090; } /* Deeper purple blue */
+        .hourly-score.verypoor { color: #696969; } /* Light dark bluish brown */
+        .hourly-score.dismal { color: #2F4F4F; } /* Dark bluish brown */
         .hourly-score.night { color: #666; }
 
         .hourly-temp {
@@ -401,14 +405,24 @@
             text-align: center;
         }
 
-        .forecast-score.excellent { color: #667eea; }
-        .forecast-score.great { color: #f5576c; }
-        .forecast-score.good { color: #4facfe; }
-        .forecast-score.moderate { color: #43e97b; }
-        .forecast-score.fair { color: #fa709a; }
-        .forecast-score.poor { color: #30cfd0; }
+        .forecast-score.excellent { color: #FFD700; }
+        .forecast-score.great { color: #FFE55C; }
+        .forecast-score.good { color: #FFB6C1; }
+        .forecast-score.moderate { color: #DDA0DD; }
+        .forecast-score.fair { color: #B0C4DE; }
+        .forecast-score.poor { color: #708090; }
+        .forecast-score.verypoor { color: #696969; }
+        .forecast-score.dismal { color: #2F4F4F; }
 
-        .pattern-bar {
+        .hourly-item.daytime {
+            background: rgba(255, 235, 92, 0.15) !important; /* Light yellow tint */
+        }
+
+        .hourly-item.nighttime {
+            background: rgba(44, 62, 80, 0.15) !important; /* Light blue tint */
+        }
+
+        footer {
             display: flex;
             height: 50px;
             border-radius: 12px;
@@ -526,7 +540,7 @@ let savedCities = JSON.parse(localStorage.getItem('heliosCities') || '[]');
 // ============================================================
 
 function getScoreLabel(score) {
-    if (score >= 4.0) return '☀️ Excellent';
+    if (score >= 4.5) return '☀️ Excellent';
     if (score >= 3.5) return '🌤️ Great';
     if (score >= 2.5) return '⛅ Good';
     if (score >= 1.5) return '🌥️ Moderate';
@@ -536,12 +550,14 @@ function getScoreLabel(score) {
 }
 
 function getScoreColorClass(score) {
-    if (score >= 4.0) return 'excellent';
-    if (score >= 3.5) return 'great';
-    if (score >= 2.5) return 'good';
-    if (score >= 1.5) return 'moderate';
-    if (score >= 0.5) return 'fair';
-    return 'poor';
+    if (score >= 4.5) return 'excellent';  // 4.5-5.0: Bright yellow
+    if (score >= 4.0) return 'great';      // 4.0-4.4: Yellow
+    if (score >= 3.5) return 'good';       // 3.5-3.9: Light purple/red
+    if (score >= 3.0) return 'moderate';   // 3.0-3.4: Deeper red/purple
+    if (score >= 2.5) return 'fair';       // 2.5-2.9: Light purple blue
+    if (score >= 2.0) return 'poor';       // 2.0-2.4: Deeper purple blue
+    if (score >= 1.5) return 'verypoor';   // 1.5-1.9: Light dark bluish brown
+    return 'dismal';                        // 1.0-1.4: Dark bluish brown
 }
 
 function getWeatherLabel(code) {
@@ -761,16 +777,14 @@ async function showCityDetail(city) {
         </div>
     `;
     
-    // Sunshine pattern bar
+    // Sunshine pattern bar with time markers
     const patternSection = document.querySelectorAll('.detail-section')[1];
     let patternHTML = '<h2>Today\'s Sunshine Pattern</h2>';
     patternHTML += '<div style="font-size: 13px; color: #666; margin-bottom: 15px;">';
     patternHTML += `${scores.daylightHours} hrs of daylight · Sunrise ${formatTime(scores.sunrise)} · Sunset ${formatTime(scores.sunset)}`;
     patternHTML += '</div>';
     
-    // Build sunshine pattern bar from hourly data
-    patternHTML += '<div class="pattern-bar">';
-    
+    // Build pattern bar with time markers
     const hourly24 = scores.hourlyForecast.slice(0, 24);
     let segments = [];
     let currentType = null;
@@ -781,21 +795,31 @@ async function showCityDetail(city) {
         let type;
         
         if (h.score === 0) type = 'night';
-        else if (h.score >= 4.0) type = 'sunny';
+        else if (h.score >= 4.5) type = 'sunny';
         else if (h.score >= 3.5) type = 'partly-cloudy';
         else if (h.score >= 2) type = 'cloudy';
         else type = 'rainy';
         
         if (type !== currentType) {
             if (currentType !== null) {
-                segments.push({ type: currentType, start: currentStart, end: i });
+                segments.push({ 
+                    type: currentType, 
+                    start: currentStart, 
+                    end: i,
+                    startTime: hourly24[currentStart].time
+                });
             }
             currentType = type;
             currentStart = i;
         }
     }
     if (currentType !== null) {
-        segments.push({ type: currentType, start: currentStart, end: 24 });
+        segments.push({ 
+            type: currentType, 
+            start: currentStart, 
+            end: 24,
+            startTime: hourly24[currentStart].time
+        });
     }
     
     const colors = {
@@ -806,11 +830,21 @@ async function showCityDetail(city) {
         'night': 'linear-gradient(135deg, #2c3e50, #34495e)'
     };
     
+    // Time markers above the bar
+    patternHTML += '<div style="position: relative; margin-bottom: 5px;">';
+    for (const seg of segments) {
+        const leftPos = (seg.start / 24 * 100).toFixed(2);
+        const timeStr = getLocalTimeFromISO(seg.startTime);
+        patternHTML += `<div style="position: absolute; left: ${leftPos}%; font-size: 11px; color: #666; transform: translateX(-50%);">${timeStr}</div>`;
+    }
+    patternHTML += '</div>';
+    
+    // Pattern bar
+    patternHTML += '<div class="pattern-bar">';
     for (const seg of segments) {
         const width = ((seg.end - seg.start) / 24 * 100).toFixed(2);
         patternHTML += `<div class="pattern-segment" style="width: ${width}%; background: ${colors[seg.type]}"></div>`;
     }
-    
     patternHTML += '</div>';
     
     // Legend
@@ -832,8 +866,10 @@ async function showCityDetail(city) {
     
     hourlyGrid.innerHTML = scores.hourlyForecast.slice(0, 24).map(h => {
         const timeStr = getLocalTimeFromISO(h.time);
+        const isDaytime = h.score > 0;
+        const bgClass = isDaytime ? 'daytime' : 'nighttime';
         return `
-            <div class="hourly-item">
+            <div class="hourly-item ${bgClass}">
                 <div class="hourly-time">${timeStr}</div>
                 <div class="hourly-icon">${getWeatherIcon(h.weatherCode)}</div>
                 <div class="hourly-score ${h.score > 0 ? getScoreColorClass(h.score) : 'night'}">${h.score > 0 ? h.score.toFixed(1) : 'N/A'}</div>
@@ -870,7 +906,7 @@ async function showCityDetail(city) {
                 <div class="forecast-score ${day.avgScore > 0 ? getScoreColorClass(day.avgScore) : ''}">${day.avgScore > 0 ? day.avgScore.toFixed(1) : 'N/A'}</div>
                 <div>
                     ${day.maxTemp}°F / ${day.minTemp}°F<br>
-                    <span style="font-size: 13px; color: #666;">Peak Helios Score: ${day.peakScore} at ${day.peakHour === 0 ? '12 AM' : day.peakHour === 12 ? '12 PM' : day.peakHour > 12 ? (day.peakHour - 12) + ' PM' : day.peakHour + ' AM'}</span><br>
+                    <span style="font-size: 13px; color: #666;">Peak: ${day.peakScore} at ${day.peakHour === 0 ? '12 AM' : day.peakHour === 12 ? '12 PM' : day.peakHour > 12 ? (day.peakHour - 12) + ' PM' : day.peakHour + ' AM'}</span><br>
                     <span style="font-size: 13px; color: #666;">${day.daylightHours} hrs daylight</span>
                 </div>
             </div>
