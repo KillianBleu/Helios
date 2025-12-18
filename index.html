@@ -570,13 +570,13 @@ function getWeatherIcon(code) {
 // CLOUDFLARE WORKER API
 // ============================================================
 
-async function fetchScoresFromWorker(lat, lon, cityName) {
+async function fetchScoresFromWorker(lat, lon, cityName, timezone) {
     try {
         if (!API_TOKEN) {
             throw new Error('No token - initialization will handle this');
         }
         
-        console.log('Fetching scores for:', cityName);
+        console.log('Fetching scores for:', cityName, 'Timezone:', timezone);
         
         const response = await fetch(`${WORKER_URL}/calculate`, {
             method: 'POST',
@@ -587,7 +587,8 @@ async function fetchScoresFromWorker(lat, lon, cityName) {
             body: JSON.stringify({
                 latitude: lat,
                 longitude: lon,
-                cityName: cityName
+                cityName: cityName,
+                timezone: timezone
             })
         });
         
@@ -637,7 +638,7 @@ async function renderCityCards() {
     
     for (let index = 0; index < savedCities.length; index++) {
         const city = savedCities[index];
-        const scores = await fetchScoresFromWorker(city.latitude, city.longitude, city.name);
+        const scores = await fetchScoresFromWorker(city.latitude, city.longitude, city.name, city.timezone);
         
         if (!scores) {
             cards.push(`
@@ -687,7 +688,7 @@ async function renderCityCards() {
 }
 
 async function showCityDetail(city) {
-    const scores = await fetchScoresFromWorker(city.latitude, city.longitude, city.name);
+    const scores = await fetchScoresFromWorker(city.latitude, city.longitude, city.name, city.timezone);
     if (!scores) return;
     
     document.getElementById('citiesView').style.display = 'none';
@@ -698,11 +699,33 @@ async function showCityDetail(city) {
     document.getElementById('detailHelioScore').textContent = scores.currentScore > 0 ? scores.currentScore.toFixed(1) : 'N/A';
     document.getElementById('detailScoreLabel').textContent = getScoreLabel(scores.currentScore);
     
-    // Helper function to format time from ISO string
+    // Helper function to format time from ISO string in CITY'S timezone
     function formatTime(isoString) {
         if (!isoString) return 'N/A';
+        // ISO string includes timezone offset, so Date will parse it correctly
         const date = new Date(isoString);
+        // Extract time from the ISO string directly to get city's local time
+        const timeMatch = isoString.match(/T(\d{2}):(\d{2})/);
+        if (timeMatch) {
+            let hour = parseInt(timeMatch[1]);
+            const minute = timeMatch[2];
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            hour = hour % 12 || 12;
+            return `${hour}:${minute} ${ampm}`;
+        }
         return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    }
+    
+    function getLocalTimeFromISO(isoString) {
+        // Extract local time from ISO string (e.g., "2024-12-18T14:00-10:00" -> 2 PM)
+        const timeMatch = isoString.match(/T(\d{2}):/);
+        if (timeMatch) {
+            let hour = parseInt(timeMatch[1]);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+            return `${displayHour} ${ampm}`;
+        }
+        return new Date(isoString).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
     }
     
     // Current conditions with daylight info
@@ -808,8 +831,7 @@ async function showCityDetail(city) {
     hourlyGrid.className = 'hourly-grid';
     
     hourlyGrid.innerHTML = scores.hourlyForecast.slice(0, 24).map(h => {
-        const time = new Date(h.time);
-        const timeStr = time.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+        const timeStr = getLocalTimeFromISO(h.time);
         return `
             <div class="hourly-item">
                 <div class="hourly-time">${timeStr}</div>
@@ -822,19 +844,21 @@ async function showCityDetail(city) {
     
     hourlySection.appendChild(hourlyGrid);
     
-    // 7-day forecast - skip yesterday, start from today
+    // 7-day forecast - filter based on city's local date
     const forecastSection = document.querySelectorAll('.detail-section')[3];
     forecastSection.innerHTML = '<h2>7-Day Forecast</h2>';
     const forecastList = document.createElement('div');
     forecastList.className = 'forecast-list';
     
-    const today = new Date().toISOString().split('T')[0];
-    const weekData = scores.weekForecast.filter(day => day.date >= today);
+    // Get today's date in the CITY'S timezone from the first daily entry
+    const cityToday = scores.weekForecast[0].date;
+    const weekData = scores.weekForecast.filter(day => day.date >= cityToday);
     
     forecastList.innerHTML = weekData.map((day, idx) => {
-        const date = new Date(day.date + 'T12:00:00');
-        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-        const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        // Parse date from YYYY-MM-DD format
+        const dateParts = day.date.split('-');
+        const dayName = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2])).toLocaleDateString('en-US', { weekday: 'short' });
+        const monthDay = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2])).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         const isToday = idx === 0;
         
         return `
@@ -846,7 +870,7 @@ async function showCityDetail(city) {
                 <div class="forecast-score ${day.avgScore > 0 ? getScoreColorClass(day.avgScore) : ''}">${day.avgScore > 0 ? day.avgScore.toFixed(1) : 'N/A'}</div>
                 <div>
                     ${day.maxTemp}°F / ${day.minTemp}°F<br>
-                    <span style="font-size: 13px; color: #666;">Peak: ${day.peakScore} at ${day.peakHour > 12 ? (day.peakHour - 12) + ' PM' : day.peakHour + ' AM'}</span><br>
+                    <span style="font-size: 13px; color: #666;">Peak: ${day.peakScore} at ${day.peakHour === 0 ? '12 AM' : day.peakHour === 12 ? '12 PM' : day.peakHour > 12 ? (day.peakHour - 12) + ' PM' : day.peakHour + ' AM'}</span><br>
                     <span style="font-size: 13px; color: #666;">${day.daylightHours} hrs daylight</span>
                 </div>
             </div>
