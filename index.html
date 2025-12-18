@@ -802,8 +802,8 @@ async function showCityDetail(city) {
     patternHTML += `${scores.daylightHours} hrs of daylight · Sunrise ${formatTime(scores.sunrise)} · Sunset ${formatTime(scores.sunset)}`;
     patternHTML += '</div>';
     
-    // Build pattern bar with time markers
-    const hourly24 = scores.hourlyForecast.slice(0, 24);
+    // Build pattern bar with time markers - uses FULL DAY from midnight
+    const hourly24 = scores.todayHourlyScores || scores.hourlyForecast.slice(0, 24);
     let segments = [];
     let currentType = null;
     let currentStart = 0;
