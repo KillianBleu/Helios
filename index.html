@@ -779,6 +779,14 @@ function addCity(city) {
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Prompt for token on first load
+    if (!API_TOKEN) {
+        API_TOKEN = prompt('🔐 Welcome to Helios!\n\nPlease enter your API token to get started:');
+        if (API_TOKEN) {
+            localStorage.setItem('heliosApiToken', API_TOKEN);
+        }
+    }
+    
     renderCityCards();
     
     const searchInput = document.getElementById('searchInput');
