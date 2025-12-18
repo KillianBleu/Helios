@@ -616,7 +616,9 @@ async function fetchScoresFromWorker(lat, lon, cityName, timezone) {
         }
         
         if (!response.ok) {
-            throw new Error(`Worker API error: ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Worker error details:', errorData);
+            throw new Error(`Worker API error: ${response.status} - ${errorData.message || 'Unknown error'}`);
         }
         
         const data = await response.json();
