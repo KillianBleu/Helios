@@ -205,15 +205,15 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
-        .helio-score-circle.excellent { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); } /* Bright deep yellow */
-        .helio-score-circle.great { background: linear-gradient(135deg, #FFE55C 0%, #FFB84D 100%); } /* General yellow */
-        .helio-score-circle.good { background: linear-gradient(135deg, #FFB6C1 0%, #FF69B4 100%); } /* Light purple/red */
-        .helio-score-circle.moderate { background: linear-gradient(135deg, #DDA0DD 0%, #BA55D3 100%); } /* Deeper red/purple */
-        .helio-score-circle.fair { background: linear-gradient(135deg, #B0C4DE 0%, #6A5ACD 100%); } /* Light purple blue */
-        .helio-score-circle.poor { background: linear-gradient(135deg, #708090 0%, #483D8B 100%); } /* Deeper purple blue */
-        .helio-score-circle.verypoor { background: linear-gradient(135deg, #696969 0%, #556B2F 100%); } /* Light dark bluish brown */
-        .helio-score-circle.dismal { background: linear-gradient(135deg, #2F4F4F 0%, #3E2723 100%); } /* Dark bluish brown */
-        .helio-score-circle.night { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); }
+        .helio-score-circle.excellent { background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%); } /* Bright gold/orange */
+        .helio-score-circle.great { background: linear-gradient(135deg, #FFA500 0%, #FF7F00 100%); } /* Orange */
+        .helio-score-circle.good { background: linear-gradient(135deg, #FF6B9D 0%, #C44569 100%); } /* Pink/rose */
+        .helio-score-circle.moderate { background: linear-gradient(135deg, #B565D8 0%, #8B3DFF 100%); } /* Purple */
+        .helio-score-circle.fair { background: linear-gradient(135deg, #5F9DF7 0%, #3B5998 100%); } /* Blue */
+        .helio-score-circle.poor { background: linear-gradient(135deg, #4A5568 0%, #2D3748 100%); } /* Blue-gray */
+        .helio-score-circle.verypoor { background: linear-gradient(135deg, #5A4A42 0%, #3E2723 100%); } /* Brown */
+        .helio-score-circle.dismal { background: linear-gradient(135deg, #2C3E50 0%, #1A252F 100%); } /* Dark blue-gray */
+        .helio-score-circle.night { background: linear-gradient(135deg, #1e3a5f 0%, #0f1419 100%); } /* Dark blue */
 
         .city-stats {
             display: grid;
@@ -369,14 +369,14 @@
             margin: 8px 0;
         }
 
-        .hourly-score.excellent { color: #FFD700; } /* Bright yellow */
-        .hourly-score.great { color: #FFE55C; } /* Yellow */
-        .hourly-score.good { color: #FFB6C1; } /* Light purple/red */
-        .hourly-score.moderate { color: #DDA0DD; } /* Deeper red/purple */
-        .hourly-score.fair { color: #B0C4DE; } /* Light purple blue */
-        .hourly-score.poor { color: #708090; } /* Deeper purple blue */
-        .hourly-score.verypoor { color: #696969; } /* Light dark bluish brown */
-        .hourly-score.dismal { color: #2F4F4F; } /* Dark bluish brown */
+        .hourly-score.excellent { color: #FF8C00; font-weight: 600; } /* Dark orange - readable */
+        .hourly-score.great { color: #FF7F00; font-weight: 600; } /* Orange */
+        .hourly-score.good { color: #C44569; font-weight: 600; } /* Deep pink */
+        .hourly-score.moderate { color: #8B3DFF; font-weight: 600; } /* Purple */
+        .hourly-score.fair { color: #3B5998; font-weight: 600; } /* Blue */
+        .hourly-score.poor { color: #2D3748; font-weight: 600; } /* Dark gray */
+        .hourly-score.verypoor { color: #3E2723; font-weight: 600; } /* Dark brown */
+        .hourly-score.dismal { color: #1A252F; font-weight: 600; } /* Very dark */
         .hourly-score.night { color: #666; }
 
         .hourly-temp {
@@ -405,24 +405,24 @@
             text-align: center;
         }
 
-        .forecast-score.excellent { color: #FFD700; }
-        .forecast-score.great { color: #FFE55C; }
-        .forecast-score.good { color: #FFB6C1; }
-        .forecast-score.moderate { color: #DDA0DD; }
-        .forecast-score.fair { color: #B0C4DE; }
-        .forecast-score.poor { color: #708090; }
-        .forecast-score.verypoor { color: #696969; }
-        .forecast-score.dismal { color: #2F4F4F; }
+        .forecast-score.excellent { color: #FF8C00; font-weight: 600; }
+        .forecast-score.great { color: #FF7F00; font-weight: 600; }
+        .forecast-score.good { color: #C44569; font-weight: 600; }
+        .forecast-score.moderate { color: #8B3DFF; font-weight: 600; }
+        .forecast-score.fair { color: #3B5998; font-weight: 600; }
+        .forecast-score.poor { color: #2D3748; font-weight: 600; }
+        .forecast-score.verypoor { color: #3E2723; font-weight: 600; }
+        .forecast-score.dismal { color: #1A252F; font-weight: 600; }
 
         .hourly-item.daytime {
-            background: rgba(255, 235, 92, 0.15) !important; /* Light yellow tint */
+            background: rgba(255, 200, 0, 0.25) !important; /* More visible yellow */
         }
 
         .hourly-item.nighttime {
-            background: rgba(44, 62, 80, 0.15) !important; /* Light blue tint */
+            background: rgba(30, 58, 95, 0.25) !important; /* More visible blue */
         }
 
-        footer {
+        .pattern-bar {
             display: flex;
             height: 50px;
             border-radius: 12px;
@@ -648,29 +648,19 @@ async function renderCityCards() {
     }
     
     emptyState.style.display = 'none';
-    citiesGrid.innerHTML = '<div style="text-align: center; padding: 40px; color: white; font-size: 18px;">☀️ Loading scores...</div>';
     
-    const cards = [];
+    // Keep existing cards, just update them
+    const existingCards = Array.from(citiesGrid.children);
     
     for (let index = 0; index < savedCities.length; index++) {
         const city = savedCities[index];
         const scores = await fetchScoresFromWorker(city.latitude, city.longitude, city.name, city.timezone);
         
-        if (!scores) {
-            cards.push(`
-                <div class="city-card" style="opacity: 0.5;">
-                    <div class="city-name">${city.name}</div>
-                    <div style="color: #666;">Failed to load</div>
-                </div>
-            `);
-            continue;
-        }
+        const score = scores ? (scores.currentScore || 0) : 0;
+        const temp = scores ? (scores.currentTemp || 0) : 0;
+        const daily = scores ? (scores.dailyAverage || 0) : 0;
         
-        const score = scores.currentScore || 0;
-        const temp = scores.currentTemp || 0;
-        const daily = scores.dailyAverage || 0;
-        
-        cards.push(`
+        const cardHTML = `
             <div class="city-card" onclick="showCityDetail(savedCities[${index}])" style="position: relative; cursor: pointer;">
                 <button class="delete-city" onclick="event.stopPropagation(); deleteCity(${index})">&times;</button>
                 <div class="city-card-header">
@@ -685,7 +675,7 @@ async function renderCityCards() {
                 <div class="city-stats">
                     <div class="stat">
                         <div class="stat-label">Current</div>
-                        <div class="stat-value">${getScoreLabel(score)}</div>
+                        <div class="stat-value">${scores ? getScoreLabel(score) : 'Error'}</div>
                     </div>
                     <div class="stat">
                         <div class="stat-label">Temperature</div>
@@ -697,10 +687,19 @@ async function renderCityCards() {
                     </div>
                 </div>
             </div>
-        `);
+        `;
+        
+        if (existingCards[index]) {
+            existingCards[index].outerHTML = cardHTML;
+        } else {
+            citiesGrid.innerHTML += cardHTML;
+        }
     }
     
-    citiesGrid.innerHTML = cards.join('');
+    // Remove extra cards if cities were deleted
+    while (citiesGrid.children.length > savedCities.length) {
+        citiesGrid.removeChild(citiesGrid.lastChild);
+    }
 }
 
 async function showCityDetail(city) {
@@ -823,19 +822,19 @@ async function showCityDetail(city) {
     }
     
     const colors = {
-        'sunny': 'linear-gradient(135deg, #FFD700, #FFA500)',
-        'partly-cloudy': 'linear-gradient(135deg, #87CEEB, #4682B4)',
-        'cloudy': 'linear-gradient(135deg, #B0C4DE, #778899)',
-        'rainy': 'linear-gradient(135deg, #708090, #2F4F4F)',
-        'night': 'linear-gradient(135deg, #2c3e50, #34495e)'
+        'sunny': 'linear-gradient(135deg, #FFD700, #FF8C00)',        // Bright gold
+        'partly-cloudy': 'linear-gradient(135deg, #87CEEB, #4682B4)', // Sky blue
+        'cloudy': 'linear-gradient(135deg, #A9A9A9, #696969)',        // Gray
+        'rainy': 'linear-gradient(135deg, #4A5568, #2D3748)',         // Dark blue-gray
+        'night': 'linear-gradient(135deg, #1e3a5f, #0f1419)'          // Dark blue
     };
     
     // Time markers above the bar
-    patternHTML += '<div style="position: relative; margin-bottom: 5px;">';
+    patternHTML += '<div style="position: relative; margin-bottom: 5px; height: 20px;">';
     for (const seg of segments) {
         const leftPos = (seg.start / 24 * 100).toFixed(2);
         const timeStr = getLocalTimeFromISO(seg.startTime);
-        patternHTML += `<div style="position: absolute; left: ${leftPos}%; font-size: 11px; color: #666; transform: translateX(-50%);">${timeStr}</div>`;
+        patternHTML += `<div style="position: absolute; left: ${leftPos}%; font-size: 11px; color: #333; font-weight: 500; transform: translateX(-50%); white-space: nowrap;">${timeStr}</div>`;
     }
     patternHTML += '</div>';
     
@@ -849,11 +848,11 @@ async function showCityDetail(city) {
     
     // Legend
     patternHTML += '<div class="pattern-legend">';
-    patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #FFD700, #FFA500)"></div> Sunny</div>';
+    patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #FFD700, #FF8C00)"></div> Sunny</div>';
     patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #87CEEB, #4682B4)"></div> Partly Cloudy</div>';
-    patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #B0C4DE, #778899)"></div> Cloudy</div>';
-    patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #708090, #2F4F4F)"></div> Rainy</div>';
-    patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #2c3e50, #34495e)"></div> Night</div>';
+    patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #A9A9A9, #696969)"></div> Cloudy</div>';
+    patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #4A5568, #2D3748)"></div> Rainy</div>';
+    patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #1e3a5f, #0f1419)"></div> Night</div>';
     patternHTML += '</div>';
     
     patternSection.innerHTML = patternHTML;
