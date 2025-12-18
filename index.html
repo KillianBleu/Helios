@@ -1,13 +1,7 @@
 <!--
-Helios - Sunshine Weather App
-Version 5.0 - Public UI
+Helios - Sunshine Weather App (Public UI)
+Version 5.0 
 Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
-
-
-This code and all associated concepts, designs, and implementations are the 
-exclusive property of the copyright holder. No part of this code may be 
-reproduced, distributed, or transmitted in any form or by any means without 
-the prior written permission of the copyright holder.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -15,6 +9,7 @@ the prior written permission of the copyright holder.
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Helios - Sunshine Weather</title>
+    <style>
     <style>
         * {
             margin: 0;
@@ -614,6 +609,9 @@ the prior written permission of the copyright holder.
                     <line x1="1" y1="12" x2="3" y2="12"/>
                     <line x1="21" y1="12" x2="23" y2="12"/>
                     <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+    </style>
+</head>
+<body>
                     <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
                 </svg>
                 Helios
@@ -900,57 +898,16 @@ the prior written permission of the copyright holder.
         // ============================================================
         // BRIGHTNESS / SUN PERCEPTION ALGORITHM
         // ============================================================
+    
+    <script>
         // ============================================================
-        // CLOUDFLARE WORKER API INTEGRATION
+        // CONFIGURATION
         // ============================================================
         
         const WORKER_URL = 'https://helios.skyler-mydler.workers.dev';
-        let API_TOKEN = localStorage.getItem('heliosToken') || '';
+        let API_TOKEN = localStorage.getItem('heliosApiToken') || '';
+        let savedCities = JSON.parse(localStorage.getItem('heliosCities') || '[]');
         
-        // Fetch scores from Cloudflare Worker
-        async function fetchCityScores(lat, lon, cityName, timezone) {
-            try {
-                if (!API_TOKEN) {
-                    API_TOKEN = prompt('Enter your Helios API token:');
-                    if (!API_TOKEN) {
-                        throw new Error('API token required');
-                    }
-                    localStorage.setItem('heliosToken', API_TOKEN);
-                }
-                
-                const response = await fetch(`${WORKER_URL}/calculate`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${API_TOKEN}`
-                    },
-                    body: JSON.stringify({
-                        latitude: lat,
-                        longitude: lon,
-                        cityName: cityName
-                    })
-                });
-                
-                if (response.status === 401) {
-                    localStorage.removeItem('heliosToken');
-                    API_TOKEN = '';
-                    alert('Invalid API token. Please try again.');
-                    return await fetchCityScores(lat, lon, cityName, timezone);
-                }
-                
-                if (!response.ok) {
-                    throw new Error(`API error: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                return data;
-                
-            } catch (error) {
-                console.error('Error fetching scores:', error);
-                alert('Unable to calculate scores. Please check your connection.');
-                return null;
-            }
-        }
             return {
                 description: description,
                 peakScore: bestScore,
@@ -1143,9 +1100,61 @@ the prior written permission of the copyright holder.
         }
 
         // Render city cards
+        // ============================================================
+        // CLOUDFLARE WORKER API
+        // ============================================================
+        
+        async function fetchScoresFromWorker(lat, lon, cityName) {
+            try {
+                // Check for token
+                if (!API_TOKEN) {
+                    API_TOKEN = prompt('🔐 Enter your Helios API token:\n\n(You only need to do this once)');
+                    if (!API_TOKEN) {
+                        return null;
+                    }
+                    localStorage.setItem('heliosApiToken', API_TOKEN);
+                }
+                
+                console.log('Fetching scores from Worker for:', cityName);
+                
+                const response = await fetch(`${WORKER_URL}/calculate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_TOKEN}`
+                    },
+                    body: JSON.stringify({
+                        latitude: lat,
+                        longitude: lon,
+                        cityName: cityName
+                    })
+                });
+                
+                if (response.status === 401) {
+                    // Invalid token
+                    localStorage.removeItem('heliosApiToken');
+                    API_TOKEN = '';
+                    alert('❌ Invalid API token. Please enter a valid token.');
+                    return await fetchScoresFromWorker(lat, lon, cityName);
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`Worker API error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Received scores:', data);
+                return data;
+                
+            } catch (error) {
+                console.error('❌ Worker API error:', error);
+                alert('Unable to load weather data. Please check your connection.');
+                return null;
+            }
+        }
         
         // ============================================================
-        // CITY RENDERING (MODIFIED FOR WORKER API)
+        // CITY RENDERING
         // ============================================================
         
         async function renderCityCards() {
@@ -1159,47 +1168,54 @@ the prior written permission of the copyright holder.
             }
             
             emptyState.style.display = 'none';
-            citiesGrid.innerHTML = '<div style="text-align: center; padding: 20px; color: white;">Loading scores...</div>';
+            citiesGrid.innerHTML = '<div style="text-align: center; padding: 40px; color: white; font-size: 18px;">☀️ Loading scores...</div>';
             
             const cards = [];
             
             for (let index = 0; index < savedCities.length; index++) {
                 const city = savedCities[index];
                 
-                // Fetch scores from Cloudflare Worker
-                const scores = await fetchCityScores(city.lat, city.lon, city.name, city.timezone);
+                // Fetch from Worker
+                const scores = await fetchScoresFromWorker(city.latitude, city.longitude, city.name);
                 
-                if (!scores) continue;
+                if (!scores) {
+                    cards.push(`
+                        <div class="city-card" style="opacity: 0.5;">
+                            <div class="city-name">${city.name}</div>
+                            <div style="color: #666;">Failed to load</div>
+                        </div>
+                    `);
+                    continue;
+                }
                 
-                const currentScore = scores.currentScore;
-                const currentTemp = scores.currentTemp;
-                const dailyAvg = scores.dailyAverage;
-                const scoreLabel = getScoreLabel(currentScore);
+                const score = scores.currentScore || 0;
+                const temp = scores.currentTemp || 0;
+                const daily = scores.dailyAverage || 0;
                 
                 cards.push(`
-                    <div class="city-card" onclick="showCityDetail(savedCities[${index}])" style="position: relative;">
+                    <div class="city-card" onclick="showCityDetail(savedCities[${index}])" style="position: relative; cursor: pointer;">
                         <button class="delete-city" onclick="event.stopPropagation(); deleteCity(${index})">&times;</button>
                         <div class="city-card-header">
                             <div class="city-info">
                                 <div class="city-name">${city.name}</div>
-                                <div class="city-country">${city.admin1 || ''} ${city.country || ''}</div>
+                                <div class="city-country">${city.admin1 ? city.admin1 + ', ' : ''}${city.country || ''}</div>
                             </div>
-                            <div class="helio-score-circle ${currentScore > 0 ? getScoreColorClass(currentScore) : 'night'}" data-score="${currentScore > 0 ? currentScore.toFixed(1) : 'N/A'}">
-                                ${currentScore > 0 ? currentScore.toFixed(1) : 'N/A'}
+                            <div class="helio-score-circle ${score > 0 ? getScoreColorClass(score) : 'night'}" data-score="${score > 0 ? score.toFixed(1) : 'N/A'}">
+                                ${score > 0 ? score.toFixed(1) : 'N/A'}
                             </div>
                         </div>
                         <div class="city-stats">
                             <div class="stat">
                                 <div class="stat-label">Current</div>
-                                <div class="stat-value">${scoreLabel}</div>
+                                <div class="stat-value">${getScoreLabel(score)}</div>
                             </div>
                             <div class="stat">
                                 <div class="stat-label">Temperature</div>
-                                <div class="stat-value">${currentTemp}°F</div>
+                                <div class="stat-value">${temp}°F</div>
                             </div>
                             <div class="stat">
                                 <div class="stat-label">Daily Avg</div>
-                                <div class="stat-value">${dailyAvg > 0 ? dailyAvg.toFixed(1) : 'N/A'}</div>
+                                <div class="stat-value">${daily > 0 ? daily.toFixed(1) : 'N/A'}</div>
                             </div>
                         </div>
                     </div>
@@ -1210,28 +1226,24 @@ the prior written permission of the copyright holder.
         }
         
         async function showCityDetail(city) {
-            console.log('Showing detail for:', city);
+            // Fetch detailed scores
+            const scores = await fetchScoresFromWorker(city.latitude, city.longitude, city.name);
             
-            // Fetch detailed scores from Worker
-            const scores = await fetchCityScores(city.lat, city.lon, city.name, city.timezone);
+            if (!scores) return;
             
-            if (!scores) {
-                alert('Unable to load city details');
-                return;
-            }
-            
-            // Hide cities view
+            // Show detail view
             document.getElementById('citiesView').style.display = 'none';
             document.getElementById('detailView').style.display = 'block';
             document.getElementById('backButton').style.display = 'block';
             
-            // Update detail view with worker data
+            // Populate detail view
             document.getElementById('detailCityName').textContent = city.name;
             document.getElementById('detailHelioScore').textContent = scores.currentScore > 0 ? scores.currentScore.toFixed(1) : 'N/A';
             document.getElementById('detailScoreLabel').textContent = getScoreLabel(scores.currentScore);
             
             // Current conditions
-            document.getElementById('detailView').querySelector('.detail-grid').innerHTML = `
+            const detailGrid = document.querySelector('.detail-grid');
+            detailGrid.innerHTML = `
                 <div class="detail-item">
                     <div class="detail-label">Temperature</div>
                     <div class="detail-value">${scores.currentTemp}°F</div>
@@ -1247,163 +1259,137 @@ the prior written permission of the copyright holder.
             `;
             
             // Hourly forecast
-            const hourlyContainer = document.getElementById('detailView').querySelector('.hourly-grid');
-            hourlyContainer.innerHTML = scores.hourlyForecast.slice(0, 24).map(hour => {
-                const time = new Date(hour.time);
+            const hourlyGrid = document.querySelector('.hourly-grid');
+            hourlyGrid.innerHTML = scores.hourlyForecast.slice(0, 24).map(h => {
+                const time = new Date(h.time);
                 const timeStr = time.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
-                
                 return `
                     <div class="hourly-item">
                         <div class="hourly-time">${timeStr}</div>
-                        <div class="hourly-icon">${getWeatherIcon(hour.weatherCode)}</div>
-                        <div class="hourly-score ${hour.score > 0 ? getScoreColorClass(hour.score) : 'night'}">
-                            ${hour.score > 0 ? hour.score.toFixed(1) : 'N/A'}
-                        </div>
-                        <div class="hourly-temp">${hour.temperature}°F</div>
+                        <div class="hourly-icon">${getWeatherIcon(h.weatherCode)}</div>
+                        <div class="hourly-score ${h.score > 0 ? getScoreColorClass(h.score) : 'night'}">${h.score > 0 ? h.score.toFixed(1) : 'N/A'}</div>
+                        <div class="hourly-temp">${h.temperature}°F</div>
                     </div>
                 `;
             }).join('');
             
             // 7-day forecast
-            const weekContainer = document.getElementById('detailView').querySelector('.forecast-list');
-            weekContainer.innerHTML = scores.weekForecast.map(day => {
+            const forecastList = document.querySelector('.forecast-list');
+            forecastList.innerHTML = scores.weekForecast.map(day => {
                 const date = new Date(day.date);
                 const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-                const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                
+                const isToday = dayName === new Date().toLocaleDateString('en-US', { weekday: 'short' });
                 return `
                     <div class="forecast-day">
                         <div>
-                            <div style="font-weight: 600;">${dayName === new Date().toLocaleDateString('en-US', { weekday: 'short' }) ? 'Today' : dayName}</div>
-                            <div style="font-size: 13px; color: #666;">${monthDay}</div>
+                            <div style="font-weight: 600;">${isToday ? 'Today' : dayName}</div>
+                            <div style="font-size: 13px; color: #666;">${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                         </div>
-                        <div class="forecast-score ${day.avgScore > 0 ? getScoreColorClass(day.avgScore) : ''}">
-                            ${day.avgScore > 0 ? day.avgScore.toFixed(1) : 'N/A'}
-                        </div>
+                        <div class="forecast-score ${day.avgScore > 0 ? getScoreColorClass(day.avgScore) : ''}">${day.avgScore > 0 ? day.avgScore.toFixed(1) : 'N/A'}</div>
                         <div>${day.maxTemp}°F / ${day.minTemp}°F · ${getScoreLabel(day.avgScore)}</div>
                     </div>
                 `;
             }).join('');
         }
-            let currentStart = 0;
-            
-            for (let hour = 0; hour < 24; hour++) {
-                const hourMinutes = hour * 60;
-                const isDay = isDaytime(hourMinutes, sunriseMinutes, sunsetMinutes);
-                
-                let type;
-                if (!isDay) {
-                    type = 'night';
-                } else if (hour < hourly.weather_code.length) {
-                    const weatherCode = hourly.weather_code[hour];
-                    const weather = weatherCodes[weatherCode] || { type: 'sunny' };
-                    type = weather.type;
-                } else {
-                    type = 'sunny';
-                }
-                
-                if (type !== currentType) {
-                    if (currentType !== null) {
-                        segments.push({
-                            type: currentType,
-                            start: currentStart,
-                            hours: hour - currentStart
-                        });
-                    }
-                    currentType = type;
-                    currentStart = hour;
-                }
-            }
-            
-            if (currentType !== null) {
-                segments.push({
-                    type: currentType,
-                    start: currentStart,
-                    hours: 24 - currentStart
-                });
-            }
-            
-            const patternBar = document.getElementById('patternBar');
-            const legendIcons = {
-                'sunny': icons.sun,
-                'partly-cloudy': icons.partlyCloudy,
-                'cloudy': icons.cloudy,
-                'rainy': icons.rainy,
-                'night': icons.moon
-            };
-            
-            patternBar.innerHTML = segments.map(seg => {
-                const percentage = (seg.hours / 24) * 100;
-                return `<div class="pattern-segment ${seg.type}" style="width: ${percentage}%" title="${seg.hours}h ${seg.type}"></div>`;
-            }).join('');
-            
-            document.getElementById('patternTimes').innerHTML = `
-                <span>12 AM</span>
-                <span>6 AM</span>
-                <span>12 PM</span>
-                <span>6 PM</span>
-                <span>12 AM</span>
-            `;
-            
-            document.getElementById('patternLegend').innerHTML = `
-                <div class="legend-item"><div class="legend-color" style="background: #FFD93D;"></div>Sunny</div>
-                <div class="legend-item"><div class="legend-color" style="background: #FFB347;"></div>Partly Cloudy</div>
-                <div class="legend-item"><div class="legend-color" style="background: #B0E0E6;"></div>Cloudy</div>
-                <div class="legend-item"><div class="legend-color" style="background: #5B9BD5;"></div>Rainy</div>
-                <div class="legend-item"><div class="legend-color" style="background: #1a237e;"></div>Night</div>
-            `;
+        
+        function showCitiesView() {
+            document.getElementById('citiesView').style.display = 'block';
+            document.getElementById('detailView').style.display = 'none';
+            document.getElementById('backButton').style.display = 'none';
         }
-
-        // Event listeners
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            const query = e.target.value.trim();
-            
-            if (query.length < 2) {
+        
+        function deleteCity(index) {
+            savedCities.splice(index, 1);
+            localStorage.setItem('heliosCities', JSON.stringify(savedCities));
+            renderCityCards();
+        }
+        
+        // ============================================================
+        // SEARCH FUNCTIONALITY
+        // ============================================================
+        
+        async function searchCities(query) {
+            if (!query || query.length < 2) {
                 document.getElementById('searchResults').style.display = 'none';
                 return;
             }
             
-            searchTimeout = setTimeout(() => {
-                searchCities(query);
-            }, 300);
-        });
-
-        document.getElementById('searchInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                clearTimeout(searchTimeout);
-                const query = e.target.value.trim();
-                if (query.length >= 2) {
-                    searchCities(query);
+            try {
+                const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`);
+                const data = await response.json();
+                
+                if (data.results && data.results.length > 0) {
+                    const resultsDiv = document.getElementById('searchResults');
+                    resultsDiv.innerHTML = data.results.map(city => {
+                        const cityJSON = JSON.stringify(city).replace(/"/g, '&quot;');
+                        return `
+                            <div class="search-result-item" onclick='addCity(${cityJSON})'>
+                                <strong>${city.name}</strong>
+                                <div class="city-details">${city.admin1 ? city.admin1 + ', ' : ''}${city.country}</div>
+                            </div>
+                        `;
+                    }).join('');
+                    resultsDiv.style.display = 'block';
+                } else {
+                    const resultsDiv = document.getElementById('searchResults');
+                    resultsDiv.innerHTML = '<div class="search-result-item" style="color: #999;">No cities found</div>';
+                    resultsDiv.style.display = 'block';
                 }
+            } catch (error) {
+                console.error('Search error:', error);
             }
-        });
-
-        document.getElementById('searchBtn').addEventListener('click', () => {
-            const query = document.getElementById('searchInput').value.trim();
-            if (query.length >= 2) {
-                searchCities(query);
+        }
+        
+        function addCity(city) {
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('searchInput').value = '';
+            
+            // Check if already exists
+            const exists = savedCities.find(c => c.latitude === city.latitude && c.longitude === city.longitude);
+            if (exists) {
+                renderCityCards();
+                return;
             }
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.search-container')) {
-                document.getElementById('searchResults').style.display = 'none';
-            }
-        });
-
-        // Initialize
-        renderCityCards();
-
-        // Auto-refresh weather data every 5 minutes
-        setInterval(async () => {
-            for (let i = 0; i < savedCities.length; i++) {
-                const city = savedCities[i];
-                city.weatherData = await fetchWeatherData(city.latitude, city.longitude, city.timezone);
-            }
+            
+            // Add city
+            savedCities.push({
+                name: city.name,
+                country: city.country,
+                admin1: city.admin1,
+                latitude: city.latitude,
+                longitude: city.longitude,
+                timezone: city.timezone
+            });
+            
             localStorage.setItem('heliosCities', JSON.stringify(savedCities));
             renderCityCards();
-        }, 300000);
+        }
+        
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCityCards();
+            
+            // Search input listener
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', (e) => {
+                searchCities(e.target.value);
+            });
+            
+            // Search button
+            document.getElementById('searchBtn').addEventListener('click', () => {
+                searchCities(searchInput.value);
+            });
+            
+            // Close search results when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.search-container')) {
+                    document.getElementById('searchResults').style.display = 'none';
+                }
+            });
+        });
     </script>
 </body>
 </html>
