@@ -1,6 +1,6 @@
 <!--
 Helios - Sunshine Weather App (Public UI)
-Version 5.0 
+Version 5.0 - Cloudflare Backend
 Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
 -->
 <!DOCTYPE html>
@@ -9,7 +9,6 @@ Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Helios - Sunshine Weather</title>
-    <style>
     <style>
         * {
             margin: 0;
@@ -898,7 +897,7 @@ Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
         // ============================================================
         // BRIGHTNESS / SUN PERCEPTION ALGORITHM
         // ============================================================
-    
+
     <script>
         // ============================================================
         // CONFIGURATION
@@ -1100,6 +1099,7 @@ Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
         }
 
         // Render city cards
+        
         // ============================================================
         // CLOUDFLARE WORKER API
         // ============================================================
@@ -1131,7 +1131,6 @@ Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
                 });
                 
                 if (response.status === 401) {
-                    // Invalid token
                     localStorage.removeItem('heliosApiToken');
                     API_TOKEN = '';
                     alert('❌ Invalid API token. Please enter a valid token.');
@@ -1175,7 +1174,6 @@ Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
             for (let index = 0; index < savedCities.length; index++) {
                 const city = savedCities[index];
                 
-                // Fetch from Worker
                 const scores = await fetchScoresFromWorker(city.latitude, city.longitude, city.name);
                 
                 if (!scores) {
@@ -1226,22 +1224,17 @@ Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
         }
         
         async function showCityDetail(city) {
-            // Fetch detailed scores
             const scores = await fetchScoresFromWorker(city.latitude, city.longitude, city.name);
-            
             if (!scores) return;
             
-            // Show detail view
             document.getElementById('citiesView').style.display = 'none';
             document.getElementById('detailView').style.display = 'block';
             document.getElementById('backButton').style.display = 'block';
             
-            // Populate detail view
             document.getElementById('detailCityName').textContent = city.name;
             document.getElementById('detailHelioScore').textContent = scores.currentScore > 0 ? scores.currentScore.toFixed(1) : 'N/A';
             document.getElementById('detailScoreLabel').textContent = getScoreLabel(scores.currentScore);
             
-            // Current conditions
             const detailGrid = document.querySelector('.detail-grid');
             detailGrid.innerHTML = `
                 <div class="detail-item">
@@ -1258,7 +1251,6 @@ Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
                 </div>
             `;
             
-            // Hourly forecast
             const hourlyGrid = document.querySelector('.hourly-grid');
             hourlyGrid.innerHTML = scores.hourlyForecast.slice(0, 24).map(h => {
                 const time = new Date(h.time);
@@ -1273,7 +1265,6 @@ Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
                 `;
             }).join('');
             
-            // 7-day forecast
             const forecastList = document.querySelector('.forecast-list');
             forecastList.innerHTML = scores.weekForecast.map(day => {
                 const date = new Date(day.date);
@@ -1344,14 +1335,12 @@ Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
             document.getElementById('searchResults').style.display = 'none';
             document.getElementById('searchInput').value = '';
             
-            // Check if already exists
             const exists = savedCities.find(c => c.latitude === city.latitude && c.longitude === city.longitude);
             if (exists) {
                 renderCityCards();
                 return;
             }
             
-            // Add city
             savedCities.push({
                 name: city.name,
                 country: city.country,
@@ -1372,18 +1361,15 @@ Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
         document.addEventListener('DOMContentLoaded', () => {
             renderCityCards();
             
-            // Search input listener
             const searchInput = document.getElementById('searchInput');
             searchInput.addEventListener('input', (e) => {
                 searchCities(e.target.value);
             });
             
-            // Search button
             document.getElementById('searchBtn').addEventListener('click', () => {
                 searchCities(searchInput.value);
             });
             
-            // Close search results when clicking outside
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.search-container')) {
                     document.getElementById('searchResults').style.display = 'none';
