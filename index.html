@@ -915,6 +915,9 @@ async function handleLogin() {
             localStorage.setItem('heliosToken', sessionToken);
             localStorage.setItem('heliosUsername', currentUser);
             localStorage.setItem('heliosApiToken', API_TOKEN);  // Store ML token securely
+        } else {
+            // Don't save to localStorage if remember me unchecked
+            // Session will only last until browser close
         }
         
         document.getElementById('displayUsername').textContent = currentUser;
@@ -932,6 +935,8 @@ async function handleLogin() {
     } finally {
         btn.disabled = false;
         btn.textContent = 'Log In';
+        // Clear password field for security
+        document.getElementById('loginPassword').value = '';
     }
 }
 
@@ -1013,6 +1018,11 @@ async function handleLogout() {
     localStorage.removeItem('heliosUsername');
     localStorage.removeItem('heliosApiToken');  // Remove ML token
     
+    // Clear login form to prevent autofill
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('rememberMe').checked = true;
+    
     showAuthOverlay();
     showLoginForm();
     renderCityCards();
@@ -1036,8 +1046,8 @@ async function loadUserCitiesFromServer() {
         // Load cities
         savedCities = data.cities.map(city => ({
             name: city.city_name,
-            lat: city.latitude,
-            lon: city.longitude,
+            latitude: city.latitude,  // Match what renderCityCards expects
+            longitude: city.longitude,  // Match what renderCityCards expects
             timezone: city.timezone || 'auto'
         }));
         
@@ -1062,8 +1072,8 @@ async function saveCitiesToServer() {
     try {
         const citiesToSave = savedCities.map((city, index) => ({
             city_name: city.name,
-            latitude: city.lat,
-            longitude: city.lon,
+            latitude: city.latitude,  // Use consistent property names
+            longitude: city.longitude,  // Use consistent property names
             timezone: city.timezone || 'auto'
         }));
 
@@ -1649,7 +1659,7 @@ async function addCity(city) {
         return;
     }
     
-    const exists = savedCities.find(c => c.lat === city.latitude && c.lon === city.longitude);
+    const exists = savedCities.find(c => c.latitude === city.latitude && c.longitude === city.longitude);
     if (exists) {
         renderCityCards();
         return;
@@ -1657,8 +1667,8 @@ async function addCity(city) {
     
     savedCities.push({
         name: city.name,
-        lat: city.latitude,
-        lon: city.longitude,
+        latitude: city.latitude,  // Consistent property names
+        longitude: city.longitude,  // Consistent property names
         timezone: city.timezone
     });
     
@@ -1673,7 +1683,7 @@ async function addCity(city) {
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    
+  
     renderCityCards();
     
     const searchInput = document.getElementById('searchInput');
