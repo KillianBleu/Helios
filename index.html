@@ -686,7 +686,7 @@
         <div class="auth-box">
             <!-- Login Form -->
             <div id="loginForm">
-                <h1>Helios</h1>
+                <h1>☀️ Helios</h1>
                 <p class="subtitle">Your Anti-Gloom Weather App</p>
                 
                 <div id="loginError" class="auth-error"></div>
@@ -730,7 +730,7 @@
 
             <!-- Signup Form -->
             <div id="signupForm" style="display: none;">
-                <h1>Helios</h1>
+                <h1>☀️ Helios</h1>
                 <p class="subtitle">Create your account to start tracking sunshine</p>
                 
                 <div id="signupError" class="auth-error"></div>
@@ -791,7 +791,7 @@
     
     <div class="container">
         <div class="header">
-            <h1>Helios</h1>
+            <h1>☀️ Helios</h1>
             <p>Find Your Brightness</p>
         </div>
 
@@ -803,7 +803,7 @@
 
         <!-- City Limit Notice -->
         <div class="city-limit-notice" id="cityLimitNotice">
-            You can save up to 6 cities to your dashboard
+            💡 You can save up to 6 cities to your dashboard
         </div>
 
         <div id="citiesView">
@@ -1329,13 +1329,13 @@ function stopAutoRefresh() {
 }
 
 function getScoreLabel(score) {
-    if (score >= 4.5) return 'Excellent';
-    if (score >= 3.5) return 'Great';
-    if (score >= 2.5) return 'Good';
-    if (score >= 1.5) return 'Moderate';
-    if (score >= 0.5) return 'Fair';
-    if (score > 0) return 'Poor';
-    return 'Nighttime';
+    if (score >= 4.5) return '☀️ Excellent';
+    if (score >= 3.5) return '🌤️ Great';
+    if (score >= 2.5) return '⛅ Good';
+    if (score >= 1.5) return '🌥️ Moderate';
+    if (score >= 0.5) return '☁️ Fair';
+    if (score > 0) return '🌫️ Poor';
+    return '🌙 Nighttime';
 }
 
 function getScoreColorClass(score) {
@@ -1363,12 +1363,12 @@ function getWeatherLabel(code) {
 
 function getWeatherIcon(code) {
     const icons = {
-        0: '☼', 1: '☼', 2: '⛅', 3: '☁', 45: '🌫', 48: '🌫',
-        51: '🌦', 53: '🌧', 55: '🌧', 61: '🌧', 63: '🌧', 65: '🌧',
-        71: '❄', 73: '❄', 75: '❄', 77: '❄', 80: '🌦', 81: '🌧',
-        82: '⛈', 85: '❄', 86: '❄', 95: '⛈', 96: '⛈', 99: '⛈'
+        0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 48: '🌫️',
+        51: '🌦️', 53: '🌧️', 55: '🌧️', 61: '🌧️', 63: '🌧️', 65: '🌧️',
+        71: '🌨️', 73: '🌨️', 75: '🌨️', 77: '🌨️', 80: '🌦️', 81: '🌧️',
+        82: '⛈️', 85: '🌨️', 86: '🌨️', 95: '⛈️', 96: '⛈️', 99: '⛈️'
     };
-    return icons[code] || '🌡';
+    return icons[code] || '🌡️';
 }
 
 // ============================================================
