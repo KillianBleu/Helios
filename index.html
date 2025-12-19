@@ -1287,28 +1287,40 @@ window.addEventListener('load', async () => {
 // Auto-refresh timer
 let autoRefreshInterval = null;
 
+// FOR TESTING: Use 30 seconds instead of 5 minutes to see it work faster
+// Change back to 300000 (5 minutes) after testing
+const REFRESH_INTERVAL = 30000; // 30 seconds for testing (change to 300000 for 5 minutes)
+
 function startAutoRefresh() {
     // Clear any existing interval
     if (autoRefreshInterval) {
         clearInterval(autoRefreshInterval);
     }
     
-    // Refresh every 5 minutes (300000 ms)
-    autoRefreshInterval = setInterval(() => {
-        console.log('Auto-refreshing weather data...');
-        if (savedCities.length > 0 && sessionToken) {
-            renderCityCards();
+    // Refresh at the specified interval
+    autoRefreshInterval = setInterval(async () => {
+        const now = new Date().toLocaleTimeString();
+        console.log(`🔄 Auto-refreshing weather data at ${now}...`);
+        
+        // Only refresh if user is logged in and has cities
+        if (savedCities.length > 0 && sessionToken && API_TOKEN) {
+            await renderCityCards();
+            console.log('✅ Auto-refresh complete');
+        } else {
+            console.log('⚠️ Skipping auto-refresh (no cities or not logged in)');
         }
-    }, 300000); // 5 minutes
+    }, REFRESH_INTERVAL);
     
-    console.log('Auto-refresh started (every 5 minutes)');
+    const startTime = new Date().toLocaleTimeString();
+    const intervalMinutes = REFRESH_INTERVAL / 60000;
+    console.log(`✅ Auto-refresh started at ${startTime} (updates every ${intervalMinutes} minutes)`);
 }
 
 function stopAutoRefresh() {
     if (autoRefreshInterval) {
         clearInterval(autoRefreshInterval);
         autoRefreshInterval = null;
-        console.log('Auto-refresh stopped');
+        console.log('🛑 Auto-refresh stopped');
     }
 }
 
