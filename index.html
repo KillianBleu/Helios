@@ -909,10 +909,12 @@ async function handleLogin() {
         
         sessionToken = data.token;
         currentUser = data.username;
+        API_TOKEN = data.mlToken;  // SECURITY: Receive ML token from server, never hardcoded
         
         if (remember) {
             localStorage.setItem('heliosToken', sessionToken);
             localStorage.setItem('heliosUsername', currentUser);
+            localStorage.setItem('heliosApiToken', API_TOKEN);  // Store ML token securely
         }
         
         document.getElementById('displayUsername').textContent = currentUser;
@@ -968,9 +970,11 @@ async function handleSignup() {
         
         sessionToken = data.token;
         currentUser = data.username;
+        API_TOKEN = data.mlToken;  // SECURITY: Receive ML token from server, never hardcoded
         
         localStorage.setItem('heliosToken', sessionToken);
         localStorage.setItem('heliosUsername', currentUser);
+        localStorage.setItem('heliosApiToken', API_TOKEN);  // Store ML token securely
         
         document.getElementById('displayUsername').textContent = currentUser;
         
@@ -1004,8 +1008,10 @@ async function handleLogout() {
     sessionToken = null;
     currentUser = null;
     savedCities = [];
+    API_TOKEN = '';  // Clear ML token on logout
     localStorage.removeItem('heliosToken');
     localStorage.removeItem('heliosUsername');
+    localStorage.removeItem('heliosApiToken');  // Remove ML token
     
     showAuthOverlay();
     showLoginForm();
@@ -1150,10 +1156,12 @@ async function saveCitiesToServer() {
 window.addEventListener('load', async () => {
     const savedToken = localStorage.getItem('heliosToken');
     const savedUsername = localStorage.getItem('heliosUsername');
+    const savedApiToken = localStorage.getItem('heliosApiToken');
     
-    if (savedToken && savedUsername) {
+    if (savedToken && savedUsername && savedApiToken) {
         sessionToken = savedToken;
         currentUser = savedUsername;
+        API_TOKEN = savedApiToken;  // Restore ML token from localStorage
         document.getElementById('displayUsername').textContent = currentUser;
         
         try {
@@ -1665,10 +1673,6 @@ async function addCity(city) {
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Set default API token for ML calculations (not for auth)
-    if (!API_TOKEN) {
-        API_TOKEN = 'your-secret-token-here';
-    }
     
     renderCityCards();
     
