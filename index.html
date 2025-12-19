@@ -1292,10 +1292,15 @@ let autoRefreshInterval = null;
 const REFRESH_INTERVAL = 30000; // 30 seconds for testing (change to 300000 for 5 minutes)
 
 function startAutoRefresh() {
+    console.log('🚀 startAutoRefresh() function called!');
+    
     // Clear any existing interval
     if (autoRefreshInterval) {
+        console.log('⚠️ Clearing existing interval');
         clearInterval(autoRefreshInterval);
     }
+    
+    console.log(`⏰ Setting up interval with ${REFRESH_INTERVAL}ms (${REFRESH_INTERVAL/1000} seconds)`);
     
     // Refresh at the specified interval
     autoRefreshInterval = setInterval(async () => {
@@ -1314,6 +1319,7 @@ function startAutoRefresh() {
     const startTime = new Date().toLocaleTimeString();
     const intervalMinutes = REFRESH_INTERVAL / 60000;
     console.log(`✅ Auto-refresh started at ${startTime} (updates every ${intervalMinutes} minutes)`);
+    console.log(`📊 Current state: cities=${savedCities.length}, hasToken=${!!sessionToken}, hasAPIToken=${!!API_TOKEN}`);
 }
 
 function stopAutoRefresh() {
