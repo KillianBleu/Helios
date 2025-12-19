@@ -806,77 +806,86 @@ async function showCityDetail(city) {
     
     // Build pattern bar with time markers - uses FULL DAY from midnight
     const hourly24 = scores.todayHourlyScores || scores.hourlyForecast.slice(0, 24);
-    let segments = [];
-    let currentType = null;
-    let currentStart = 0;
     
-    for (let i = 0; i < hourly24.length; i++) {
-        const h = hourly24[i];
-        let type;
+    // Safety check: make sure we have data
+    if (!hourly24 || hourly24.length === 0) {
+        patternHTML += '<div style="color: #666;">No pattern data available</div>';
+        patternSection.innerHTML = patternHTML;
+    } else {
+        let segments = [];
+        let currentType = null;
+        let currentStart = 0;
         
-        if (h.score === 0) type = 'night';
-        else if (h.score >= 4.5) type = 'sunny';
-        else if (h.score >= 3.5) type = 'partly-cloudy';
-        else if (h.score >= 2) type = 'cloudy';
-        else type = 'rainy';
-        
-        if (type !== currentType) {
-            if (currentType !== null) {
-                segments.push({ 
-                    type: currentType, 
-                    start: currentStart, 
-                    end: i,
-                    startTime: hourly24[currentStart].time
-                });
+        for (let i = 0; i < hourly24.length; i++) {
+            const h = hourly24[i];
+            if (!h) continue; // Skip if hour data is missing
+            
+            let type;
+            
+            if (h.score === 0) type = 'night';
+            else if (h.score >= 4.5) type = 'sunny';
+            else if (h.score >= 3.5) type = 'partly-cloudy';
+            else if (h.score >= 2) type = 'cloudy';
+            else type = 'rainy';
+            
+            if (type !== currentType) {
+                if (currentType !== null && hourly24[currentStart]) {
+                    segments.push({ 
+                        type: currentType, 
+                        start: currentStart, 
+                        end: i,
+                        startTime: hourly24[currentStart].time
+                    });
+                }
+                currentType = type;
+                currentStart = i;
             }
-            currentType = type;
-            currentStart = i;
         }
+        if (currentType !== null && hourly24[currentStart]) {
+            segments.push({ 
+                type: currentType, 
+                start: currentStart, 
+                end: hourly24.length,
+                startTime: hourly24[currentStart].time
+            });
+        }
+        
+        const colors = {
+            'sunny': 'linear-gradient(135deg, #FFD700, #FF8C00)',        // Bright gold
+            'partly-cloudy': 'linear-gradient(135deg, #87CEEB, #4682B4)', // Sky blue
+            'cloudy': 'linear-gradient(135deg, #A9A9A9, #696969)',        // Gray
+            'rainy': 'linear-gradient(135deg, #4A5568, #2D3748)',         // Dark blue-gray
+            'night': 'linear-gradient(135deg, #1e3a5f, #0f1419)'          // Dark blue
+        };
+        
+        // Time markers above the bar
+        patternHTML += '<div style="position: relative; margin-bottom: 5px; height: 20px;">';
+        for (const seg of segments) {
+            const leftPos = (seg.start / hourly24.length * 100).toFixed(2);
+            const timeStr = getLocalTimeFromISO(seg.startTime);
+            patternHTML += `<div style="position: absolute; left: ${leftPos}%; font-size: 11px; color: #333; font-weight: 500; transform: translateX(-50%); white-space: nowrap;">${timeStr}</div>`;
+        }
+        patternHTML += '</div>';
+        
+        // Pattern bar
+        patternHTML += '<div class="pattern-bar">';
+        for (const seg of segments) {
+            const width = ((seg.end - seg.start) / hourly24.length * 100).toFixed(2);
+            patternHTML += `<div class="pattern-segment" style="width: ${width}%; background: ${colors[seg.type]}"></div>`;
+        }
+        patternHTML += '</div>';
+        
+        // Legend
+        patternHTML += '<div class="pattern-legend">';
+        patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #FFD700, #FF8C00)"></div> Sunny</div>';
+        patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #87CEEB, #4682B4)"></div> Partly Cloudy</div>';
+        patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #A9A9A9, #696969)"></div> Cloudy</div>';
+        patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #4A5568, #2D3748)"></div> Rainy</div>';
+        patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #1e3a5f, #0f1419)"></div> Night</div>';
+        patternHTML += '</div>';
+        
+        patternSection.innerHTML = patternHTML;
     }
-    if (currentType !== null) {
-        segments.push({ 
-            type: currentType, 
-            start: currentStart, 
-            end: 24,
-            startTime: hourly24[currentStart].time
-        });
-    }
-    
-    const colors = {
-        'sunny': 'linear-gradient(135deg, #FFD700, #FF8C00)',        // Bright gold
-        'partly-cloudy': 'linear-gradient(135deg, #87CEEB, #4682B4)', // Sky blue
-        'cloudy': 'linear-gradient(135deg, #A9A9A9, #696969)',        // Gray
-        'rainy': 'linear-gradient(135deg, #4A5568, #2D3748)',         // Dark blue-gray
-        'night': 'linear-gradient(135deg, #1e3a5f, #0f1419)'          // Dark blue
-    };
-    
-    // Time markers above the bar
-    patternHTML += '<div style="position: relative; margin-bottom: 5px; height: 20px;">';
-    for (const seg of segments) {
-        const leftPos = (seg.start / 24 * 100).toFixed(2);
-        const timeStr = getLocalTimeFromISO(seg.startTime);
-        patternHTML += `<div style="position: absolute; left: ${leftPos}%; font-size: 11px; color: #333; font-weight: 500; transform: translateX(-50%); white-space: nowrap;">${timeStr}</div>`;
-    }
-    patternHTML += '</div>';
-    
-    // Pattern bar
-    patternHTML += '<div class="pattern-bar">';
-    for (const seg of segments) {
-        const width = ((seg.end - seg.start) / 24 * 100).toFixed(2);
-        patternHTML += `<div class="pattern-segment" style="width: ${width}%; background: ${colors[seg.type]}"></div>`;
-    }
-    patternHTML += '</div>';
-    
-    // Legend
-    patternHTML += '<div class="pattern-legend">';
-    patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #FFD700, #FF8C00)"></div> Sunny</div>';
-    patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #87CEEB, #4682B4)"></div> Partly Cloudy</div>';
-    patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #A9A9A9, #696969)"></div> Cloudy</div>';
-    patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #4A5568, #2D3748)"></div> Rainy</div>';
-    patternHTML += '<div class="legend-item"><div class="legend-color" style="background: linear-gradient(135deg, #1e3a5f, #0f1419)"></div> Night</div>';
-    patternHTML += '</div>';
-    
-    patternSection.innerHTML = patternHTML;
     
     // Hourly forecast with horizontal scroll
     const hourlySection = document.querySelectorAll('.detail-section')[2];
