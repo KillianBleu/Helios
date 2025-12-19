@@ -944,13 +944,16 @@ async function handleLogin() {
         currentUser = data.username;
         API_TOKEN = data.mlToken;  // SECURITY: Receive ML token from server, never hardcoded
         
+        // ALWAYS save to sessionStorage (persists during tab session, cleared on tab close)
+        sessionStorage.setItem('heliosToken', sessionToken);
+        sessionStorage.setItem('heliosUsername', currentUser);
+        sessionStorage.setItem('heliosApiToken', API_TOKEN);
+        
+        // ONLY save to localStorage if "remember me" is checked (persists after tab close)
         if (remember) {
-            localStorage.setItem('heliosToken', sessionToken);
-            localStorage.setItem('heliosUsername', currentUser);
-            localStorage.setItem('heliosApiToken', API_TOKEN);  // Store ML token securely
+            localStorage.setItem('heliosRememberUser', currentUser);
         } else {
-            // Don't save to localStorage if remember me unchecked
-            // Session will only last until browser close
+            localStorage.removeItem('heliosRememberUser');
         }
         
         document.getElementById('displayUsername').textContent = currentUser;
@@ -960,6 +963,9 @@ async function handleLogin() {
         
         hideAuthOverlay();
         renderCityCards();
+        
+        // Start auto-refresh
+        startAutoRefresh();
         
     } catch (error) {
         console.error('Login error:', error);
@@ -1010,9 +1016,13 @@ async function handleSignup() {
         currentUser = data.username;
         API_TOKEN = data.mlToken;  // SECURITY: Receive ML token from server, never hardcoded
         
-        localStorage.setItem('heliosToken', sessionToken);
-        localStorage.setItem('heliosUsername', currentUser);
-        localStorage.setItem('heliosApiToken', API_TOKEN);  // Store ML token securely
+        // ALWAYS save to sessionStorage (persists during tab session)
+        sessionStorage.setItem('heliosToken', sessionToken);
+        sessionStorage.setItem('heliosUsername', currentUser);
+        sessionStorage.setItem('heliosApiToken', API_TOKEN);
+        
+        // New accounts get "remember me" by default
+        localStorage.setItem('heliosRememberUser', currentUser);
         
         document.getElementById('displayUsername').textContent = currentUser;
         
@@ -1021,6 +1031,9 @@ async function handleSignup() {
         
         hideAuthOverlay();
         renderCityCards();
+        
+        // Start auto-refresh
+        startAutoRefresh();
         
     } catch (error) {
         errorDiv.textContent = error.message || 'Signup failed';
@@ -1032,8 +1045,9 @@ async function handleSignup() {
 }
 
 async function handleLogout() {
-    // Check if user had remember me enabled before logout
-    const hadRememberMe = !!localStorage.getItem('heliosToken');
+    // Check if user had "remember me" enabled
+    const hadRememberMe = !!localStorage.getItem('heliosRememberUser');
+    const rememberedUsername = localStorage.getItem('heliosRememberUser');
     
     if (sessionToken) {
         try {
@@ -1050,14 +1064,28 @@ async function handleLogout() {
     currentUser = null;
     savedCities = [];
     API_TOKEN = '';  // Clear ML token on logout
+    
+    // Stop auto-refresh
+    stopAutoRefresh();
+    
+    // Clear session storage (active session)
+    sessionStorage.removeItem('heliosToken');
+    sessionStorage.removeItem('heliosUsername');
+    sessionStorage.removeItem('heliosApiToken');
+    
+    // Clear localStorage tokens but keep remember me preference
     localStorage.removeItem('heliosToken');
     localStorage.removeItem('heliosUsername');
-    localStorage.removeItem('heliosApiToken');  // Remove ML token
+    localStorage.removeItem('heliosApiToken');
     
-    // Only clear form if user didn't have "remember me" checked
-    // If they did, browser autofill will restore their credentials
+    // Only clear credentials if "remember me" was NOT checked
     if (!hadRememberMe) {
         document.getElementById('loginUsername').value = '';
+        document.getElementById('loginPassword').value = '';
+        localStorage.removeItem('heliosRememberUser');
+    } else {
+        // Restore username for convenience
+        document.getElementById('loginUsername').value = rememberedUsername;
         document.getElementById('loginPassword').value = '';
     }
     
@@ -1204,20 +1232,44 @@ async function saveCitiesToServer() {
 
 // Check for existing session on page load
 window.addEventListener('load', async () => {
-    const savedToken = localStorage.getItem('heliosToken');
-    const savedUsername = localStorage.getItem('heliosUsername');
-    const savedApiToken = localStorage.getItem('heliosApiToken');
+    // Priority 1: Check sessionStorage (active session, persists on refresh)
+    let savedToken = sessionStorage.getItem('heliosToken');
+    let savedUsername = sessionStorage.getItem('heliosUsername');
+    let savedApiToken = sessionStorage.getItem('heliosApiToken');
+    
+    // Priority 2: If no session, check localStorage (remember me)
+    if (!savedToken) {
+        savedToken = localStorage.getItem('heliosToken');
+        savedUsername = localStorage.getItem('heliosUsername');
+        savedApiToken = localStorage.getItem('heliosApiToken');
+        
+        // If restoring from localStorage, also save to sessionStorage
+        if (savedToken && savedUsername && savedApiToken) {
+            sessionStorage.setItem('heliosToken', savedToken);
+            sessionStorage.setItem('heliosUsername', savedUsername);
+            sessionStorage.setItem('heliosApiToken', savedApiToken);
+        }
+    }
+    
+    // Pre-fill username if remembered
+    const rememberedUser = localStorage.getItem('heliosRememberUser');
+    if (rememberedUser && !savedToken) {
+        document.getElementById('loginUsername').value = rememberedUser;
+    }
     
     if (savedToken && savedUsername && savedApiToken) {
         sessionToken = savedToken;
         currentUser = savedUsername;
-        API_TOKEN = savedApiToken;  // Restore ML token from localStorage
+        API_TOKEN = savedApiToken;  // Restore ML token
         document.getElementById('displayUsername').textContent = currentUser;
         
         try {
             await loadUserCitiesFromServer();
             hideAuthOverlay();
             renderCityCards();
+            
+            // Start auto-refresh
+            startAutoRefresh();
         } catch (error) {
             console.error('Failed to restore session:', error);
             handleLogout();
@@ -1231,6 +1283,34 @@ window.addEventListener('load', async () => {
 // ============================================================
 // UTILITY FUNCTIONS
 // ============================================================
+
+// Auto-refresh timer
+let autoRefreshInterval = null;
+
+function startAutoRefresh() {
+    // Clear any existing interval
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+    
+    // Refresh every 5 minutes (300000 ms)
+    autoRefreshInterval = setInterval(() => {
+        console.log('Auto-refreshing weather data...');
+        if (savedCities.length > 0 && sessionToken) {
+            renderCityCards();
+        }
+    }, 300000); // 5 minutes
+    
+    console.log('Auto-refresh started (every 5 minutes)');
+}
+
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+        console.log('Auto-refresh stopped');
+    }
+}
 
 function getScoreLabel(score) {
     if (score >= 4.5) return '☀️ Excellent';
