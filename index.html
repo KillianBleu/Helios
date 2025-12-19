@@ -801,11 +801,6 @@
             <button class="btn-logout" id="logoutBtn">Logout</button>
         </div>
 
-        <!-- City Limit Notice -->
-        <div class="city-limit-notice" id="cityLimitNotice">
-            💡 You can save up to 6 cities to your dashboard
-        </div>
-
         <div id="citiesView">
             <div class="search-container">
                 <div class="search-box">
@@ -846,6 +841,13 @@
             <div class="detail-section">
                 <!-- 7-day forecast will be inserted here -->
             </div>
+        </div>
+    </div>
+
+    <!-- City Limit Notice (bottom) -->
+    <div class="container">
+        <div class="city-limit-notice" id="cityLimitNotice">
+            💡 You can save up to 6 cities to your dashboard
         </div>
     </div>
 
@@ -1112,9 +1114,11 @@ async function loadUserCitiesFromServer() {
         // Load cities
         savedCities = data.cities.map(city => ({
             name: city.city_name,
-            latitude: city.latitude,  // Match what renderCityCards expects
-            longitude: city.longitude,  // Match what renderCityCards expects
-            timezone: city.timezone || 'auto'
+            latitude: city.latitude,
+            longitude: city.longitude,
+            timezone: city.timezone || 'auto',
+            admin1: city.admin1 || '',
+            country: city.country || ''
         }));
         
     } catch (error) {
@@ -1138,9 +1142,11 @@ async function saveCitiesToServer() {
     try {
         const citiesToSave = savedCities.map((city, index) => ({
             city_name: city.name,
-            latitude: city.latitude,  // Use consistent property names
-            longitude: city.longitude,  // Use consistent property names
-            timezone: city.timezone || 'auto'
+            latitude: city.latitude,
+            longitude: city.longitude,
+            timezone: city.timezone || 'auto',
+            admin1: city.admin1 || '',
+            country: city.country || ''
         }));
 
         const response = await fetch(`${WORKER_URL}/user/cities`, {
@@ -1448,8 +1454,44 @@ async function renderCityCards() {
         const scores = await fetchScoresFromWorker(city.latitude, city.longitude, city.name, city.timezone);
         
         const score = scores ? (scores.currentScore || 0) : 0;
-        const temp = scores ? (scores.currentTemp || 0) : 0;
         const daily = scores ? (scores.dailyAverage || 0) : 0;
+        
+        // Get peak time info
+        let peakScore = 'N/A';
+        let peakTime = 'N/A';
+        if (scores && scores.weekForecast && scores.weekForecast[0]) {
+            peakScore = scores.weekForecast[0].peakScore || 'N/A';
+            const peakHour = scores.weekForecast[0].peakHour;
+            if (peakHour !== undefined) {
+                peakTime = peakHour === 0 ? '12 AM' : peakHour === 12 ? '12 PM' : peakHour > 12 ? (peakHour - 12) + ' PM' : peakHour + ' AM';
+            }
+        }
+        
+        // Format sunrise/sunset times
+        function formatTime(isoString) {
+            if (!isoString) return 'N/A';
+            const timeMatch = isoString.match(/T(\d{2}):(\d{2})/);
+            if (timeMatch) {
+                let hour = parseInt(timeMatch[1]);
+                const minute = timeMatch[2];
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                hour = hour % 12 || 12;
+                return `${hour}:${minute} ${ampm}`;
+            }
+            return 'N/A';
+        }
+        
+        const sunrise = scores ? formatTime(scores.sunrise) : 'N/A';
+        const sunset = scores ? formatTime(scores.sunset) : 'N/A';
+        
+        // Build location string (City, State, Country)
+        let locationStr = city.name;
+        if (city.admin1 || city.country) {
+            const parts = [];
+            if (city.admin1) parts.push(city.admin1);
+            if (city.country) parts.push(city.country);
+            if (parts.length > 0) locationStr += ', ' + parts.join(', ');
+        }
         
         const cardHTML = `
             <div class="city-card" onclick="showCityDetail(savedCities[${index}])" style="position: relative; cursor: pointer;">
@@ -1469,12 +1511,12 @@ async function renderCityCards() {
                         <div class="stat-value">${scores ? getScoreLabel(score) : 'Error'}</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-label">Temperature</div>
-                        <div class="stat-value">${temp}°F</div>
+                        <div class="stat-label">Peak: ${peakScore} at</div>
+                        <div class="stat-value">${peakTime}</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-label">Daily Avg</div>
-                        <div class="stat-value">${daily > 0 ? daily.toFixed(1) : 'N/A'}</div>
+                        <div class="stat-label">Sunrise / Sunset</div>
+                        <div class="stat-value" style="font-size: 14px;">${sunrise} / ${sunset}</div>
                     </div>
                 </div>
             </div>
@@ -1802,9 +1844,11 @@ async function addCity(city) {
     
     savedCities.push({
         name: city.name,
-        latitude: city.latitude,  // Consistent property names
-        longitude: city.longitude,  // Consistent property names
-        timezone: city.timezone
+        latitude: city.latitude,
+        longitude: city.longitude,
+        timezone: city.timezone,
+        admin1: city.admin1 || '',  // State/province
+        country: city.country || ''  // Country
     });
     
     // Save to server
