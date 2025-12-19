@@ -1,7 +1,15 @@
 <!--
-Helios - Sunshine Weather App with Authentication
-Version 5.1 - User Authentication System
-Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
+Helios - Sunshine Weather App
+Version 4.3.2 - Conservative Boost Calibration
+Copyright Â© 2025 Skyler Mydler / Killian Bleu. All rights reserved.
+
+CRITICAL CALIBRATION:
+- Made boost system more conservative to avoid over-scoring actually cloudy conditions
+- Raised boost thresholds: SEF>0.70 (was 0.45) for partly cloudy, SEF>0.75 (was 0.60) for overcast
+- Raised cloud cover threshold: >60% (was >40%) for partly cloudy
+- Reduced boost strength: +20% (was +25%/+30%) for both conditions
+- Result: Boost only applies when sun is VERY high and API is likely wrong
+- Dubai partly cloudy should now score 3.5-4.0 instead of 5.0
 
 This code and all associated concepts, designs, and implementations are the 
 exclusive property of the copyright holder. No part of this code may be 
@@ -34,123 +42,6 @@ the prior written permission of the copyright holder.
             margin: 0 auto;
         }
 
-        /* AUTH SCREENS */
-        .auth-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: calc(100vh - 40px);
-        }
-
-        .auth-box {
-            background: white;
-            border-radius: 24px;
-            padding: 40px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .auth-box h1 {
-            font-size: 36px;
-            color: #FFA500;
-            margin-bottom: 8px;
-            text-align: center;
-        }
-
-        .auth-box .subtitle {
-            color: #666;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 14px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 14px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            font-size: 16px;
-            transition: border-color 0.2s;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #FFA500;
-        }
-
-        .btn-primary {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-weight: 600;
-            font-size: 16px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .auth-switch {
-            text-align: center;
-            margin-top: 20px;
-            color: #666;
-            font-size: 14px;
-        }
-
-        .auth-switch a {
-            color: #FFA500;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .auth-switch a:hover {
-            text-decoration: underline;
-        }
-
-        .error-message {
-            background: #ffe0e0;
-            color: #cc0000;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .error-message.show {
-            display: block;
-        }
-
-        /* DASHBOARD */
-        #dashboardView {
-            display: none;
-        }
-
         .header {
             text-align: center;
             margin-bottom: 30px;
@@ -173,45 +64,22 @@ the prior written permission of the copyright holder.
             opacity: 0.95;
         }
 
-        .user-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255,255,255,0.2);
-            padding: 12px 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            color: white;
-            font-weight: 500;
-        }
-
-        .user-bar .username {
-            font-size: 16px;
-        }
-
-        .btn-logout {
-            background: rgba(255,255,255,0.3);
+        .back-button {
+            display: none;
+            background: white;
+            color: #FFA500;
             border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .btn-logout:hover {
-            background: rgba(255,255,255,0.4);
-        }
-
-        .city-limit-notice {
-            background: rgba(255,255,255,0.2);
-            padding: 12px 20px;
-            border-radius: 12px;
             margin-bottom: 20px;
-            color: white;
-            font-size: 14px;
-            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
         }
 
         .search-container {
@@ -274,6 +142,10 @@ the prior written permission of the copyright holder.
             background: #FFF9F0;
         }
 
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
         .search-result-item strong {
             color: #333;
             font-weight: 600;
@@ -284,6 +156,29 @@ the prior written permission of the copyright holder.
         .search-result-item .city-details {
             font-size: 14px;
             color: #999;
+        }
+
+        /* Icon styles */
+        .icon {
+            width: 24px;
+            height: 24px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .icon-sm {
+            width: 16px;
+            height: 16px;
+        }
+
+        .icon-lg {
+            width: 32px;
+            height: 32px;
+        }
+
+        /* City Cards View */
+        #citiesView {
+            display: block;
         }
 
         .cities-grid {
@@ -300,590 +195,1932 @@ the prior written permission of the copyright holder.
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
-            position: relative;
         }
 
         .city-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 6px 25px rgba(0,0,0,0.2);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
         }
 
-        .delete-city-btn {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: #ff4444;
-            color: white;
-            border: none;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 18px;
-            line-height: 1;
-            transition: background 0.2s;
-            z-index: 10;
-        }
-
-        .delete-city-btn:hover {
-            background: #cc0000;
-        }
-
-        .city-header {
+        .city-card-header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: start;
             margin-bottom: 12px;
         }
 
-        .city-name {
-            font-size: 20px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 4px;
+        .city-info {
+            flex: 1;
         }
 
-        .local-time {
-            font-size: 14px;
+        .city-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .city-country {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .current-helio-compact {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-left: 12px;
+        }
+
+        .helio-score-compact {
+            font-size: 36px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .helio-score-compact.excellent { color: #FFD700; }
+        .helio-score-compact.good { color: #FFA500; }
+        .helio-score-compact.fair { color: #FF8C00; }
+        .helio-score-compact.poor { color: #FF6347; }
+        .helio-score-compact.very-poor { color: #8B4513; }
+        .helio-score-compact.nighttime { color: #1a237e; }
+
+        .score-label-compact {
+            font-size: 10px;
             color: #666;
+            text-align: center;
+            margin-top: 2px;
+        }
+
+        .delete-city {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #ccc;
+            padding: 4px;
+            transition: color 0.2s;
+            position: absolute;
+            top: 12px;
+            right: 12px;
+        }
+
+        .delete-city:hover {
+            color: #ff4444;
+        }
+
+        .card-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 8px;
+            background: #f8f8f8;
+            border-radius: 8px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+        }
+
+        .empty-state h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        /* Detail View */
+        #detailView {
+            display: none;
+        }
+
+        .detail-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .detail-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .detail-city-name {
+            font-size: 28px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
         }
 
         .helio-score-large {
-            font-size: 48px;
+            font-size: 72px;
             font-weight: 700;
-            margin: 12px 0;
+            margin: 20px 0;
         }
 
-        .score-0, .score-1 { color: #1a237e; }
-        .score-2 { color: #5B9BD5; }
-        .score-3 { color: #FFB347; }
-        .score-4 { color: #FFA500; }
-        .score-5 { color: #FFD700; }
+        .helio-score-large.excellent { color: #FFD700; }
+        .helio-score-large.good { color: #FFA500; }
+        .helio-score-large.fair { color: #FF8C00; }
+        .helio-score-large.poor { color: #FF6347; }
+        .helio-score-large.very-poor { color: #8B4513; }
+        .helio-score-large.nighttime { color: #1a237e; }
+
+        .score-label {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 20px;
+        }
 
         .weather-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .detail-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 12px;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
             display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .detail-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: start;
+            gap: 10px;
+        }
+
+        /* Sunshine Pattern Bar */
+        .pattern-times {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .pattern-bar {
+            display: flex;
+            height: 50px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+
+        .pattern-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+
+        .pattern-segment:hover {
+            transform: scale(1.05);
+            z-index: 1;
+        }
+
+        .pattern-segment.sunny { background: #FFD93D; }
+        .pattern-segment.partly-cloudy { background: #FFB347; }
+        .pattern-segment.cloudy { background: #B0E0E6; }
+        .pattern-segment.rainy { background: #5B9BD5; }
+        .pattern-segment.night { background: #1a237e; }
+
+        .pattern-legend {
+            display: flex;
+            flex-wrap: wrap;
             gap: 12px;
-            margin-top: 12px;
-            font-size: 14px;
+            font-size: 13px;
             color: #666;
         }
 
-        .weather-detail {
+        .legend-item {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
         }
 
-        .icon-sm {
+        .legend-color {
             width: 16px;
             height: 16px;
+            border-radius: 4px;
         }
 
-        .loading {
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f8f8f8;
+            border-radius: 10px;
+            gap: 12px;
+        }
+
+        .timeline-time {
+            font-weight: 600;
+            color: #333;
+            min-width: 80px;
+        }
+
+        .timeline-event {
+            flex: 1;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hourly-forecast {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+
+        .hourly-item {
+            min-width: 90px;
             text-align: center;
-            padding: 40px;
+            padding: 15px;
+            border-radius: 12px;
+            flex-shrink: 0;
+        }
+
+        .hourly-item.daytime {
+            background: rgba(255, 179, 71, 0.15);
+            border: 1px solid rgba(255, 179, 71, 0.3);
+        }
+
+        .hourly-item.nighttime {
+            background: rgba(26, 35, 126, 0.15);
+            border: 1px solid rgba(26, 35, 126, 0.3);
+        }
+
+        .hourly-time {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .hourly-icon {
+            margin: 10px 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .hourly-score {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+
+        .hourly-temp {
+            font-size: 14px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .daily-forecast {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .daily-item {
+            display: flex;
+            align-items: center;
+            padding: 18px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #fff 0%, #fafafa 100%);
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s;
+        }
+
+        .daily-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .daily-item.excellent-day {
+            background: linear-gradient(135deg, #FFF9E6 0%, #FFF5CC 100%);
+            border-color: #FFD700;
+        }
+
+        .daily-item.good-day {
+            background: linear-gradient(135deg, #FFF5E6 0%, #FFEDCC 100%);
+            border-color: #FFA500;
+        }
+
+        .daily-day {
+            font-weight: 600;
+            color: #333;
+            min-width: 100px;
+        }
+
+        .daily-score {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0 20px;
+        }
+
+        .daily-summary {
+            flex: 1;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .daily-description {
+            color: #888;
+            font-size: 13px;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        .copyright {
+            text-align: center;
             color: white;
-            font-size: 18px;
+            margin-top: 30px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        /* Scrollbar styling */
+        .hourly-forecast::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .hourly-forecast::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .hourly-forecast::-webkit-scrollbar-thumb {
+            background: #FFB347;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+    <!-- Auth Overlay Styles -->
+    <style>
+        #authOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #authOverlay.hidden {
+            display: none !important;
+        }
+
+        .auth-box {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .auth-box h1 {
+            font-size: 36px;
+            color: #FFA500;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .auth-box .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .auth-form-group {
+            margin-bottom: 20px;
+        }
+
+        .auth-form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .auth-form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .auth-form-group input:focus {
+            outline: none;
+            border-color: #FFA500;
+        }
+
+        .auth-form-group small {
+            display: block;
+            margin-top: 4px;
+            color: #999;
+            font-size: 12px;
+        }
+
+        .btn-auth {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .btn-auth:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+        }
+
+        .btn-auth:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .auth-switch a {
+            color: #FFA500;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .auth-switch a:hover {
+            text-decoration: underline;
+        }
+
+        .auth-error {
+            background: #ffe0e0;
+            color: #cc0000;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .auth-error.show {
+            display: block;
+        }
+
+        .user-bar {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.2);
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            color: white;
+            font-weight: 500;
+        }
+
+        .user-bar.visible {
+            display: flex;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.4);
+        }
+
+        .city-limit-notice {
+            background: rgba(255,255,255,0.2);
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            color: white;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+        }
+
+        .city-limit-notice.visible {
+            display: block;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- LOGIN VIEW -->
-        <div id="loginView" class="auth-container">
-            <div class="auth-box">
+    <!-- Authentication Overlay -->
+    <div id="authOverlay">
+        <div class="auth-box">
+            <!-- Login Form -->
+            <div id="loginForm">
                 <h1>☀️ Helios</h1>
                 <p class="subtitle">Track bright moments for better mental health</p>
                 
-                <div id="loginError" class="error-message"></div>
+                <div id="loginError" class="auth-error"></div>
                 
-                <form id="loginForm">
-                    <div class="form-group">
+                <form id="loginFormElement" onsubmit="return false;">
+                    <div class="auth-form-group">
                         <label for="loginUsername">Username</label>
-                        <input type="text" id="loginUsername" required autocomplete="username">
+                        <input 
+                            type="text" 
+                            id="loginUsername" 
+                            required 
+                            autocomplete="username"
+                        >
                     </div>
-                    <div class="form-group">
+                    <div class="auth-form-group">
                         <label for="loginPassword">Password</label>
-                        <input type="password" id="loginPassword" required autocomplete="current-password">
+                        <input 
+                            type="password" 
+                            id="loginPassword" 
+                            required 
+                            autocomplete="current-password"
+                        >
                     </div>
-                    <div class="form-group">
-                        <label style="display: flex; align-items: center; gap: 8px;">
+                    <div class="auth-form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                             <input type="checkbox" id="rememberMe" checked>
-                            <span style="font-weight: normal;">Remember me</span>
+                            <span style="font-weight: normal;">Remember me (62 days)</span>
                         </label>
                     </div>
-                    <button type="submit" class="btn-primary" id="loginBtn">Log In</button>
+                    <button type="submit" class="btn-auth" id="loginBtn">Log In</button>
                 </form>
                 
                 <div class="auth-switch">
-                    Don't have an account? <a href="#" id="showSignup">Sign up</a>
+                    Don't have an account? <a id="showSignupLink">Sign up</a>
                 </div>
             </div>
-        </div>
 
-        <!-- SIGNUP VIEW -->
-        <div id="signupView" class="auth-container" style="display: none;">
-            <div class="auth-box">
+            <!-- Signup Form -->
+            <div id="signupForm" style="display: none;">
                 <h1>☀️ Helios</h1>
                 <p class="subtitle">Create your account to start tracking sunshine</p>
                 
-                <div id="signupError" class="error-message"></div>
+                <div id="signupError" class="auth-error"></div>
                 
-                <form id="signupForm">
-                    <div class="form-group">
+                <form id="signupFormElement" onsubmit="return false;">
+                    <div class="auth-form-group">
                         <label for="signupUsername">Username</label>
-                        <input type="text" id="signupUsername" required minlength="3" maxlength="20" autocomplete="username">
-                        <small style="color: #666; font-size: 12px;">3-20 characters</small>
+                        <input 
+                            type="text" 
+                            id="signupUsername" 
+                            required 
+                            minlength="3" 
+                            maxlength="20" 
+                            autocomplete="off"
+                        >
+                        <small>3-20 characters (case-insensitive)</small>
                     </div>
-                    <div class="form-group">
+                    <div class="auth-form-group">
                         <label for="signupPassword">Password</label>
-                        <input type="password" id="signupPassword" required minlength="6" autocomplete="new-password">
-                        <small style="color: #666; font-size: 12px;">At least 6 characters</small>
+                        <input 
+                            type="password" 
+                            id="signupPassword" 
+                            required 
+                            minlength="6" 
+                            autocomplete="new-password"
+                        >
+                        <small>At least 6 characters</small>
                     </div>
-                    <div class="form-group">
+                    <div class="auth-form-group">
                         <label for="signupPasswordConfirm">Confirm Password</label>
-                        <input type="password" id="signupPasswordConfirm" required minlength="6" autocomplete="new-password">
+                        <input 
+                            type="password" 
+                            id="signupPasswordConfirm" 
+                            required 
+                            minlength="6" 
+                            autocomplete="new-password"
+                        >
                     </div>
-                    <button type="submit" class="btn-primary" id="signupBtn">Create Account</button>
+                    <button type="submit" class="btn-auth" id="signupBtn">Create Account</button>
                 </form>
                 
                 <div class="auth-switch">
-                    Already have an account? <a href="#" id="showLogin">Log in</a>
+                    Already have an account? <a id="showLoginLink">Log in</a>
                 </div>
-            </div>
-        </div>
-
-        <!-- DASHBOARD VIEW -->
-        <div id="dashboardView">
-            <div class="user-bar">
-                <span class="username">Welcome, <span id="displayUsername"></span>!</span>
-                <button class="btn-logout" id="logoutBtn">Logout</button>
-            </div>
-
-            <div class="city-limit-notice">
-                💡 You can save up to 6 cities to your dashboard
-            </div>
-
-            <div class="header">
-                <h1>
-                    <span>☀️</span>
-                    <span>Helios</span>
-                </h1>
-                <p>Find Your Sunshine</p>
-            </div>
-
-            <div class="search-container">
-                <div class="search-box">
-                    <input 
-                        type="text" 
-                        id="searchInput" 
-                        placeholder="Search for a city..."
-                        autocomplete="off"
-                    >
-                    <button id="searchBtn">Search</button>
-                </div>
-                <div id="searchResults"></div>
-            </div>
-
-            <div id="citiesGrid" class="cities-grid"></div>
-            
-            <div id="loadingCities" class="loading" style="display: none;">
-                Loading your cities...
             </div>
         </div>
     </div>
 
+    <!-- Main Application (Original Helios UI) -->
+    <div class="container">
+        <!-- User Bar (shown when logged in) -->
+        <div class="user-bar" id="userBar">
+            <span>Welcome, <span id="displayUsername"></span>!</span>
+            <button class="btn-logout" id="logoutBtn">Logout</button>
+        </div>
+
+        <!-- City Limit Notice -->
+        <div class="city-limit-notice" id="cityLimitNotice">
+            💡 You can save up to 6 cities to your dashboard
+        </div>
+
+        <div class="header">
+            <h1>
+                <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                Helios
+            </h1>
+            <p>Your Sunshine Forecast</p>
+        </div>
+
+        <button class="back-button" id="backButton" onclick="showCitiesView()">â† Back to Cities</button>
+
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search for a city..." autocomplete="off">
+                <button id="searchBtn">Search</button>
+            </div>
+            <div id="searchResults"></div>
+        </div>
+
+        <!-- Cities View -->
+        <div id="citiesView">
+            <div class="empty-state" id="emptyState">
+                <h2>Welcome to Helios</h2>
+                <p>Search for a city to add it to your dashboard</p>
+            </div>
+            <div class="cities-grid" id="citiesGrid"></div>
+        </div>
+
+        <!-- Detail View -->
+        <div id="detailView">
+            <div class="detail-card">
+                <div class="detail-header">
+                    <div class="detail-city-name" id="detailCityName">Loading...</div>
+                    <div class="helio-score-large" id="detailHelioScore">-</div>
+                    <div class="score-label" id="detailScoreLabel">Calculating...</div>
+                    <div class="weather-details" id="detailWeatherDetails"></div>
+                </div>
+            </div>
+
+            <div class="detail-card">
+                <div class="section-title">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    Today's Sunshine Pattern
+                </div>
+                <div class="pattern-times" id="patternTimes"></div>
+                <div class="pattern-bar" id="patternBar"></div>
+                <div class="pattern-legend" id="patternLegend"></div>
+            </div>
+
+            <div class="detail-card">
+                <div class="section-title">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3v18h18"/>
+                        <path d="M18 17V9"/>
+                        <path d="M13 17V5"/>
+                        <path d="M8 17v-3"/>
+                    </svg>
+                    Hourly Forecast
+                </div>
+                <div class="hourly-forecast" id="hourlyForecast"></div>
+            </div>
+
+            <div class="detail-card">
+                <div class="section-title">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    7-Day Forecast
+                </div>
+                <div class="daily-forecast" id="dailyForecast"></div>
+            </div>
+        </div>
+
+        <div class="copyright">
+            Â© 2025 Helios Weather App. All rights reserved.
+        </div>
+
     <script>
-        // ============================================================
-        // CONFIGURATION
-        // ============================================================
-        const WORKER_URL = 'https://helios.skyler-mydler.workers.dev';
-        const AUTH_TOKEN = 'helios-secure-2025';
-
-        // ============================================================
-        // STATE
-        // ============================================================
-        let currentUser = null;
-        let sessionToken = null;
-        let savedCities = [];
-        let searchTimeout;
-
-        // ============================================================
-        // ICONS
-        // ============================================================
+        // SVG Icon Templates
         const icons = {
-            sun: '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>',
-            partlyCloudy: '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/><path d="M13 22H7a5 5 0 1 1 .3-10h1.7"/></svg>',
-            cloudy: '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>',
-            rainy: '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 13v8M8 13v8M12 15v8M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg>',
-            snow: '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10 20-5.5-5.5M2 17l3 3M22 17l-3 3M16 20l5.5-5.5M20 7l-3-3M2 7l3-3M12 10V2M8 6l4-4 4 4M12 14v8M8 18l4 4 4-4"/></svg>',
+            sun: '<svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+            partlyCloudy: '<svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/><path d="M22 15.5c-1.5 0-2.5-1-3-2s-1.5-2-3-2c-1.5 0-2.5 1-3 2"/></svg>',
+            cloudy: '<svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>',
+            rainy: '<svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 13v8"/><path d="M8 13v8"/><path d="M12 15v8"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg>',
+            snow: '<svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="8" y1="20" x2="8.01" y2="20"/><line x1="12" y1="18" x2="12.01" y2="18"/><line x1="12" y1="22" x2="12.01" y2="22"/><line x1="16" y1="16" x2="16.01" y2="16"/><line x1="16" y1="20" x2="16.01" y2="20"/></svg>',
+            storm: '<svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+            moon: '<svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+            sunrise: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/></svg>',
+            sunset: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 10V2"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m16 6-4 4-4-4"/></svg>',
             thermometer: '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>',
             cloud: '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>',
             droplet: '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>'
         };
 
-        // ============================================================
-        // AUTHENTICATION
-        // ============================================================
-        async function signup(username, password) {
-            const response = await fetch(`${WORKER_URL}/auth/signup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
+        let searchTimeout;
+        let savedCities = [];
+        
+        // NOTE: City loading is now handled by the authentication system
+        // savedCities will be populated after login via loadUserCitiesFromServer()
+
+        // Weather code mapping
+        const weatherCodes = {
+            0: { name: 'Clear', icon: icons.sun, type: 'sunny' },
+            1: { name: 'Mainly Clear', icon: icons.partlyCloudy, type: 'sunny' },
+            2: { name: 'Partly Cloudy', icon: icons.partlyCloudy, type: 'partly-cloudy' },
+            3: { name: 'Overcast', icon: icons.cloudy, type: 'cloudy' },
+            45: { name: 'Foggy', icon: icons.cloudy, type: 'cloudy' },
+            48: { name: 'Foggy', icon: icons.cloudy, type: 'cloudy' },
+            51: { name: 'Light Drizzle', icon: icons.rainy, type: 'rainy' },
+            53: { name: 'Drizzle', icon: icons.rainy, type: 'rainy' },
+            55: { name: 'Heavy Drizzle', icon: icons.rainy, type: 'rainy' },
+            61: { name: 'Light Rain', icon: icons.rainy, type: 'rainy' },
+            63: { name: 'Rain', icon: icons.rainy, type: 'rainy' },
+            65: { name: 'Heavy Rain', icon: icons.rainy, type: 'rainy' },
+            71: { name: 'Light Snow', icon: icons.snow, type: 'rainy' },
+            73: { name: 'Snow', icon: icons.snow, type: 'rainy' },
+            75: { name: 'Heavy Snow', icon: icons.snow, type: 'rainy' },
+            80: { name: 'Rain Showers', icon: icons.rainy, type: 'rainy' },
+            81: { name: 'Rain Showers', icon: icons.rainy, type: 'rainy' },
+            82: { name: 'Heavy Showers', icon: icons.rainy, type: 'rainy' },
+            95: { name: 'Thunderstorm', icon: icons.storm, type: 'rainy' },
+            96: { name: 'Thunderstorm', icon: icons.storm, type: 'rainy' },
+            99: { name: 'Severe Storm', icon: icons.storm, type: 'rainy' }
+        };
+
+        // Get day name from date string in correct timezone
+        function getDayName(dateString, isToday) {
+            if (isToday) return 'Today';
             
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error);
-            return data;
+            // Parse the date string (format: "2025-12-16")
+            const [year, month, day] = dateString.split('-').map(Number);
+            const date = new Date(year, month - 1, day); // Month is 0-indexed
+            
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            return days[date.getDay()];
         }
 
-        async function login(username, password) {
-            const response = await fetch(`${WORKER_URL}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error);
-            return data;
+        // Time parsing functions
+        function parseLocalTime(timeStr) {
+            const parts = timeStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+            if (!parts) return null;
+            return {
+                year: parseInt(parts[1]),
+                month: parseInt(parts[2]),
+                day: parseInt(parts[3]),
+                hour: parseInt(parts[4]),
+                minute: parseInt(parts[5])
+            };
         }
 
-        async function logout() {
-            if (sessionToken) {
-                await fetch(`${WORKER_URL}/auth/logout`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${sessionToken}` }
-                });
+        function getCurrentLocalTime(timezone) {
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            const parts = formatter.formatToParts(new Date());
+            const getValue = (type) => parts.find(p => p.type === type)?.value;
+            
+            return {
+                year: parseInt(getValue('year')),
+                month: parseInt(getValue('month')),
+                day: parseInt(getValue('day')),
+                hour: parseInt(getValue('hour')),
+                minute: parseInt(getValue('minute'))
+            };
+        }
+
+        function toMinutes(time) {
+            return time.hour * 60 + time.minute;
+        }
+
+        function isDaytime(currentMinutes, sunriseMinutes, sunsetMinutes) {
+            return currentMinutes >= sunriseMinutes && currentMinutes < sunsetMinutes;
+        }
+
+        // Create proper timestamp from API's ISO time string
+        // API gives us "2024-12-15T11:00" which represents 11:00 AM in the city's LOCAL timezone
+        // SunCalc needs a JavaScript Date object representing that exact moment in time
+        function createTimestampFromISO(isoTimeString, timezone) {
+            // The API already gives us the timestamp in the location's timezone
+            // But JavaScript's Date parser will interpret it as LOCAL (browser) time
+            // We need to tell it "this time is in THAT timezone"
+            
+            // Simplest solution: manually build the UTC equivalent
+            // Example: Cape Town "2024-12-15T11:00" in Africa/Johannesburg (UTC+2)
+            // Should become a Date representing 2024-12-15T09:00:00Z
+            
+            const date = new Date(isoTimeString);
+            
+            // Now figure out the offset between the timezone and UTC
+            // Create a reference date
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const day = date.getDate();
+            const hour = date.getHours();
+            const minute = date.getMinutes();
+            
+            // Get this moment in the target timezone
+            const tzFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            // Get this moment in UTC
+            const utcFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'UTC',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            // Use current moment to calculate offset
+            const now = new Date();
+            const tzParts = tzFormatter.formatToParts(now);
+            const utcParts = utcFormatter.formatToParts(now);
+            
+            const getValue = (parts, type) => parseInt(parts.find(p => p.type === type)?.value || 0);
+            
+            const tzHour = getValue(tzParts, 'hour');
+            const utcHour = getValue(utcParts, 'hour');
+            
+            // Calculate offset in hours (this is approximate but works for our purposes)
+            let offsetHours = tzHour - utcHour;
+            
+            // Handle day boundary crossings
+            if (offsetHours > 12) offsetHours -= 24;
+            if (offsetHours < -12) offsetHours += 24;
+            
+            // Now apply this offset to our parsed time
+            // If Cape Town is UTC+2, and we have 11:00 local, UTC time is 09:00
+            // So we subtract the offset
+            const utcDate = new Date(Date.UTC(year, month, day, hour - offsetHours, minute, 0));
+            
+            console.log('Timestamp conversion:', {
+                input: isoTimeString,
+                timezone,
+                offsetHours,
+                result: utcDate.toISOString()
+            });
+            
+            return utcDate;
+        }
+
+        function formatTime(time) {
+            const hour = time.hour;
+            const minute = time.minute.toString().padStart(2, '0');
+            if (hour === 0) return `12:${minute} AM`;
+            if (hour === 12) return `12:${minute} PM`;
+            if (hour < 12) return `${hour}:${minute} AM`;
+            return `${hour - 12}:${minute} PM`;
+        }
+
+        // ============================================================
+        // BRIGHTNESS / SUN PERCEPTION ALGORITHM
+        // ============================================================
+        
+        // Weather code â†’ Cloud Brightness Factor (CBF)
+        function getCloudBrightnessFactor(weatherCode) {
+            const factors = {
+                0: 1.00,   // Clear sky
+                1: 0.95,   // Mainly clear
+                2: 0.85,   // Partly cloudy
+                3: 0.60,   // Overcast
+                45: 0.55,  // Fog
+                48: 0.50,  // Depositing rime fog
+                51: 0.75,  // Light drizzle
+                53: 0.70,  // Moderate drizzle
+                55: 0.65,  // Dense drizzle
+                61: 0.70,  // Slight rain
+                63: 0.60,  // Moderate rain
+                65: 0.50,  // Heavy rain
+                71: 0.80,  // Slight snow (bright reflection)
+                73: 0.70,  // Moderate snow
+                75: 0.60,  // Heavy snow
+                77: 0.70,  // Snow grains
+                80: 0.75,  // Rain showers
+                81: 0.60,  // Heavy showers
+                82: 0.45,  // Violent showers
+                85: 0.75,  // Slight snow showers
+                86: 0.60,  // Heavy snow showers
+                95: 0.35,  // Thunderstorm
+                96: 0.35,  // Thunderstorm + hail
+                99: 0.35   // Severe storm
+            };
+            return factors[weatherCode] || 0.80; // default
+        }
+        
+        // Weather code â†’ Precipitation Factor (PF)
+        function getPrecipitationFactor(weatherCode) {
+            const factors = {
+                0: 1.00,   // Clear
+                1: 1.00,   // Mainly clear
+                2: 1.00,   // Partly cloudy
+                3: 1.00,   // Overcast
+                45: 1.00,  // Fog
+                48: 1.00,  // Rime fog
+                51: 0.90,  // Light drizzle
+                53: 0.80,  // Moderate drizzle
+                55: 0.70,  // Dense drizzle
+                61: 0.85,  // Slight rain
+                63: 0.70,  // Moderate rain
+                65: 0.55,  // Heavy rain
+                71: 0.90,  // Slight snow
+                73: 0.80,  // Moderate snow
+                75: 0.70,  // Heavy snow
+                77: 0.85,  // Snow grains
+                80: 0.85,  // Rain showers
+                81: 0.65,  // Heavy showers
+                82: 0.50,  // Violent showers
+                85: 0.85,  // Slight snow showers
+                86: 0.70,  // Heavy snow showers
+                95: 0.45,  // Thunderstorm
+                96: 0.45,  // Thunderstorm + hail
+                99: 0.45   // Severe storm
+            };
+            return factors[weatherCode] || 1.00;
+        }
+        
+        // Weather code â†’ Atmospheric Clarity Factor (ACF)
+        function getClarityFactor(weatherCode) {
+            const factors = {
+                0: 1.00,   // Clear
+                1: 1.00,   // Mainly clear
+                2: 0.95,   // Partly cloudy
+                3: 0.80,   // Overcast
+                45: 0.55,  // Fog (major clarity impact)
+                48: 0.50,  // Rime fog
+                51: 0.90,  // Light drizzle
+                53: 0.85,  // Moderate drizzle
+                55: 0.85,  // Dense drizzle
+                61: 0.85,  // Slight rain
+                63: 0.80,  // Moderate rain
+                65: 0.70,  // Heavy rain
+                71: 0.90,  // Slight snow
+                73: 0.85,  // Moderate snow
+                75: 0.75,  // Heavy snow
+                77: 0.85,  // Snow grains
+                80: 0.85,  // Rain showers
+                81: 0.75,  // Heavy showers
+                82: 0.60,  // Violent showers
+                85: 0.85,  // Slight snow showers
+                86: 0.75,  // Heavy snow showers
+                95: 0.65,  // Thunderstorm
+                96: 0.65,  // Thunderstorm + hail
+                99: 0.65   // Severe storm
+            };
+            return factors[weatherCode] || 1.00;
+        }
+        
+        // Cloud Coverage Factor (CCF)
+        function getCloudCoverageFactor(cloudCover) {
+            if (cloudCover < 10) return 1.00;
+            if (cloudCover < 25) return 0.90;
+            if (cloudCover < 50) return 0.75;
+            if (cloudCover < 90) return 0.55;
+            return 0.35;
+        }
+        
+        // Calculate Brightness Score (0-5) using perception algorithm
+        function calculateBrightnessScore(weatherCode, cloudCover, lat, lon, timestamp) {
+            // Step 1: Solar Elevation (primary driver)
+            const sunPosition = SunCalc.getPosition(timestamp, lat, lon);
+            const solarElevationDegrees = sunPosition.altitude * (180 / Math.PI);
+            
+            // Night check
+            if (solarElevationDegrees <= 0) {
+                return 0;
             }
             
-            sessionToken = null;
-            currentUser = null;
-            localStorage.removeItem('heliosToken');
-            showLoginView();
-        }
-
-        async function getUserCities() {
-            const response = await fetch(`${WORKER_URL}/user/cities`, {
-                headers: { 'Authorization': `Bearer ${sessionToken}` }
+            // Solar Elevation Factor (SEF) - MODIFIED FOR PERCEPTION
+            // Instead of linear sine curve, use a modified curve that:
+            // - Gets bright QUICKLY after sunrise (within 5-10 minutes)
+            // - Stays HIGH (near 1.0) for most of the day
+            // - Only drops significantly very close to sunset
+            // This matches perception: 15 min after sunrise already feels bright
+            
+            let SEF;
+            if (solarElevationDegrees < 2) {
+                // Very close to horizon (within ~8 min of sunset/sunrise)
+                // Scale from 0.5 to 0.75 - even at horizon it's somewhat bright
+                SEF = 0.5 + (solarElevationDegrees / 2) * 0.25;
+            } else if (solarElevationDegrees < 8) {
+                // Low sun but visible (8-32 min from sunrise/sunset)
+                // Ramp up quickly from 0.75 to 0.90
+                SEF = 0.75 + ((solarElevationDegrees - 2) / 6) * 0.15;
+            } else {
+                // Normal daylight hours (sun above 8Â°, ~30+ min from sunrise/sunset)
+                // Stay very high, only slight variation
+                // Use a gentle curve from 0.90 to 1.0
+                const normalizedElev = Math.min((solarElevationDegrees - 8) / 60, 1.0);
+                SEF = 0.90 + (normalizedElev * 0.10);
+            }
+            
+            const SEF_clamped = Math.max(0, Math.min(1, SEF));
+            
+            // CLOUD COVER DAMPENING
+            // When clouds completely cover the sky, solar position matters less
+            // because you can't see the sun. Score becomes more about cloud brightness.
+            let SEF_adjusted = SEF_clamped;
+            
+            if (cloudCover > 85) {
+                // Very heavy clouds (85-100%) - sun completely blocked
+                // Reduce SEF but not too much - bright overcast is still decent
+                const cloudFactor = 0.75; // Reduce to 75% of original (was 60%)
+                SEF_adjusted = SEF_clamped * cloudFactor;
+            } else if (cloudCover > 60) {
+                // Moderate-heavy clouds (60-85%) - sun mostly blocked
+                // Light dampening
+                const dampening = 0.85 + ((85 - cloudCover) / 25) * 0.10; // 0.85 to 0.95
+                SEF_adjusted = SEF_clamped * dampening;
+            }
+            // else: cloudCover <= 60%, no dampening needed (sun frequently visible)
+            
+            // Step 2: Cloud Coverage Factor (CCF)
+            let CCF = getCloudCoverageFactor(cloudCover);
+            
+            // Step 3: Cloud Brightness Factor (CBF)
+            const CBF = getCloudBrightnessFactor(weatherCode);
+            
+            // Step 4: Precipitation Factor (PF)
+            const PF = getPrecipitationFactor(weatherCode);
+            
+            // Step 5: Atmospheric Clarity Factor (ACF)
+            const ACF = getClarityFactor(weatherCode);
+            
+            // Step 6: Cloud Data Error Compensation
+            // Soften over-reported cloud cover when sun is high and not stormy
+            const isThunderstorm = [95, 96, 99].includes(weatherCode);
+            if (SEF_clamped > 0.7 && cloudCover > 60 && !isThunderstorm) {
+                CCF = Math.min(1.0, CCF + 0.15);
+            }
+            
+            // Step 7: Weighted Combination
+            const BrightnessRaw = SEF_adjusted * (
+                0.40 * CCF +
+                0.30 * CBF +
+                0.15 * PF +
+                0.15 * ACF
+            );
+            
+            let BrightnessRaw_clamped = Math.max(0, Math.min(1, BrightnessRaw));
+            
+            // INTELLIGENT CORRECTION: When sun is very high but API reports heavy overcast
+            // or partly cloudy with significant clouds, the API data is often wrong
+            // Boost the score to account for likely API error
+            // Made more conservative to avoid over-boosting actually cloudy conditions
+            const needsBoost = (
+                (SEF_adjusted > 0.75 && weatherCode === 3 && cloudCover > 75) || // Overcast with VERY high sun only
+                (SEF_adjusted > 0.70 && weatherCode === 2 && cloudCover > 60)    // Partly cloudy - raised thresholds
+            );
+            
+            // Debug boost decision
+            console.log('Boost check:', {
+                weatherCode,
+                cloudCover,
+                SEF: SEF_adjusted.toFixed(3),
+                solarElev: solarElevationDegrees.toFixed(1) + 'Â°',
+                condition2: `SEF>${0.70} && code==2 && clouds>60: ${SEF_adjusted > 0.70} && ${weatherCode === 2} && ${cloudCover > 60}`,
+                needsBoost
             });
             
-            const data = await response.json();
-            if (!response.ok) {
-                if (response.status === 401) {
-                    logout();
-                    return [];
+            if (needsBoost) {
+                // Sun is VERY high but API reports suspicious clouds
+                // Conservative boost - only apply when confident API is wrong
+                const boost = weatherCode === 3 ? 0.20 : 0.20; // Reduced from 0.25/0.30 to 0.20
+                const oldRaw = BrightnessRaw_clamped;
+                BrightnessRaw_clamped = Math.min(1.0, BrightnessRaw_clamped + boost);
+                console.log(`âœ“ BOOST APPLIED: ${oldRaw.toFixed(3)} â†’ ${BrightnessRaw_clamped.toFixed(3)} (+${boost})`);
+            }
+            
+            // Step 8: Map to 0-5 scale
+            let BrightnessScore = 5 * BrightnessRaw_clamped; // Keep as decimal
+            BrightnessScore = Math.max(1, Math.min(5, BrightnessScore));
+            BrightnessScore = Math.round(BrightnessScore * 10) / 10; // Round to 1 decimal place
+            
+            // Debug logging
+            console.log('Brightness Calc:', {
+                solarElev: solarElevationDegrees.toFixed(1) + 'Â°',
+                SEF_base: SEF_clamped.toFixed(3),
+                SEF_adjusted: SEF_adjusted.toFixed(3),
+                cloudCover: cloudCover + '%',
+                CCF: CCF.toFixed(3),
+                CBF: CBF.toFixed(3),
+                PF: PF.toFixed(3),
+                ACF: ACF.toFixed(3),
+                raw: BrightnessRaw_clamped.toFixed(3),
+                final: BrightnessScore
+            });
+            
+            return BrightnessScore;
+        }
+
+        function getScoreClass(score) {
+            if (score === 0) return 'nighttime';
+            if (score >= 4.5) return 'excellent';
+            if (score >= 3.5) return 'good';
+            if (score >= 2.5) return 'fair';
+            if (score >= 1.5) return 'poor';
+            return 'very-poor';
+        }
+
+        function getScoreLabel(score) {
+            if (score === 0) return 'Night';
+            if (score >= 4.5) return 'Very Bright';
+            if (score >= 3.5) return 'Bright';
+            if (score >= 2.5) return 'Mixed Light';
+            if (score >= 1.5) return 'Gloomy';
+            return 'Very Dark';
+        }
+
+        // Generate detailed sunshine description for daily forecast
+        function getDailySunshineDescription(dayScoresWithIndex, dayName = 'Unknown') {
+            if (dayScoresWithIndex.length === 0) {
+                return {
+                    description: 'No daylight hours',
+                    peakScore: 0,
+                    peakHour: 0
+                };
+            }
+            
+            // Find peak sunshine hour using WEATHER-BASED priority
+            // Prioritize actually sunny hours over boosted cloudy hours
+            let maxScore = -1;
+            let peakHour = 0;
+            let peakWeatherType = null;
+            
+            // First pass: find the max score
+            for (let entry of dayScoresWithIndex) {
+                if (entry.score > maxScore) {
+                    maxScore = entry.score;
                 }
-                throw new Error(data.error);
             }
-            return data.cities;
-        }
-
-        async function saveCitiesToServer() {
-            const citiesToSave = savedCities.map(city => ({
-                city_name: city.name,
-                latitude: city.latitude,
-                longitude: city.longitude
-            }));
-
-            const response = await fetch(`${WORKER_URL}/user/cities`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${sessionToken}`
-                },
-                body: JSON.stringify({ cities: citiesToSave })
+            
+            // Second pass: among high-scoring hours, prefer sunny weather
+            const highScoreThreshold = maxScore - 0.3; // Within 0.3 of max
+            let bestPriority = 999;
+            let bestScore = -1;
+            
+            for (let entry of dayScoresWithIndex) {
+                if (entry.score >= highScoreThreshold) {
+                    // Determine weather type priority (lower = better)
+                    let priority;
+                    if (entry.weatherCode === 0 || entry.weatherCode === 1) {
+                        priority = 1; // Clear/mainly clear
+                    } else if (entry.weatherCode === 2) {
+                        priority = 2; // Partly cloudy
+                    } else if (entry.weatherCode === 3) {
+                        priority = 3; // Overcast
+                    } else {
+                        priority = 4; // Rainy/other
+                    }
+                    
+                    // Pick hour with best priority, or highest score if same priority
+                    if (priority < bestPriority || (priority === bestPriority && entry.score > bestScore)) {
+                        bestPriority = priority;
+                        peakHour = entry.hour;
+                        bestScore = entry.score;
+                        peakWeatherType = entry.weatherCode;
+                    }
+                }
+            }
+            
+            // Debug logging
+            const sortedScores = [...dayScoresWithIndex].sort((a, b) => b.score - a.score);
+            console.warn(`ðŸŒž PEAK SUN for ${dayName}:`, {
+                totalHours: dayScoresWithIndex.length,
+                maxScore: maxScore.toFixed(1),
+                peakHour: peakHour,
+                peakScore: bestScore.toFixed(1),
+                peakWeather: peakWeatherType,
+                top5: sortedScores.slice(0, 5).map(s => `Hour ${s.hour}: ${s.score.toFixed(1)} (code ${s.weatherCode})`).join(', ')
             });
             
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error);
-        }
-
-        // ============================================================
-        // VIEW MANAGEMENT
-        // ============================================================
-        function showLoginView() {
-            document.getElementById('loginView').style.display = 'flex';
-            document.getElementById('signupView').style.display = 'none';
-            document.getElementById('dashboardView').style.display = 'none';
-        }
-
-        function showSignupView() {
-            document.getElementById('loginView').style.display = 'none';
-            document.getElementById('signupView').style.display = 'flex';
-            document.getElementById('dashboardView').style.display = 'none';
-        }
-
-        function showDashboard() {
-            document.getElementById('loginView').style.display = 'none';
-            document.getElementById('signupView').style.display = 'none';
-            document.getElementById('dashboardView').style.display = 'block';
-            document.getElementById('displayUsername').textContent = currentUser;
-        }
-
-        // ============================================================
-        // WEATHER DATA
-        // ============================================================
-        async function fetchWeatherData(lat, lon, timezone) {
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weather_code,cloud_cover&daily=sunrise,sunset&timezone=${timezone}`;
-            const response = await fetch(url);
-            return await response.json();
-        }
-
-        async function calculateHelioScore(solarElevation, weatherCode, cloudCover) {
-            const response = await fetch(`${WORKER_URL}/calculate`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Auth-Token': AUTH_TOKEN
-                },
-                body: JSON.stringify({
-                    solarElevation,
-                    weatherCode,
-                    cloudCover
-                })
-            });
+            // Format peak time
+            let peakTimeStr = '';
+            if (peakHour === 0) peakTimeStr = '12 AM';
+            else if (peakHour < 12) peakTimeStr = `${peakHour} AM`;
+            else if (peakHour === 12) peakTimeStr = '12 PM';
+            else peakTimeStr = `${peakHour - 12} PM`;
             
-            const data = await response.json();
-            return data.score;
+            // Generate description based on score and return peak info
+            let description;
+            if (maxScore >= 4.5) {
+                description = `Peak ${bestScore.toFixed(1)} around ${peakTimeStr}`;
+            } else if (maxScore >= 3.5) {
+                description = `Best light ${bestScore.toFixed(1)} around ${peakTimeStr}`;
+            } else if (maxScore >= 2.5) {
+                description = `Some brightness near ${peakTimeStr}`;
+            } else if (maxScore >= 1.5) {
+                description = `Limited light, try ${peakTimeStr}`;
+            } else {
+                description = `Minimal sun expected`;
+            }
+            
+            return {
+                description: description,
+                peakScore: bestScore,
+                peakHour: peakHour
+            };
         }
 
-        // ============================================================
-        // CITY SEARCH
-        // ============================================================
+        // Search cities
         async function searchCities(query) {
+            if (!query || query.length < 2) {
+                document.getElementById('searchResults').style.display = 'none';
+                return;
+            }
+
             try {
-                const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`);
+                const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`);
+                
+                if (!response.ok) throw new Error('Search failed');
+                
                 const data = await response.json();
-                
-                const resultsDiv = document.getElementById('searchResults');
-                
-                if (!data.results || data.results.length === 0) {
-                    resultsDiv.innerHTML = '<div class="search-result-item">No cities found</div>';
+
+                if (data.results && data.results.length > 0) {
+                    displaySearchResults(data.results);
+                } else {
+                    const resultsDiv = document.getElementById('searchResults');
+                    resultsDiv.innerHTML = '<div class="search-result-item" style="color: #999; cursor: default; pointer-events: none;">No cities found</div>';
                     resultsDiv.style.display = 'block';
-                    return;
                 }
-                
-                resultsDiv.innerHTML = data.results.map(city => {
-                    const locationParts = [city.name, city.admin1, city.country].filter(Boolean);
-                    return `
-                        <div class="search-result-item" onclick="selectCity(${city.latitude}, ${city.longitude}, '${city.name.replace(/'/g, "\\'")}', '${city.timezone}')">
-                            <strong>${city.name}</strong>
-                            <div class="city-details">${locationParts.slice(1).join(', ')}</div>
-                        </div>
-                    `;
-                }).join('');
-                
-                resultsDiv.style.display = 'block';
             } catch (error) {
                 console.error('Search error:', error);
             }
         }
 
-        async function selectCity(lat, lon, name, timezone) {
+        function displaySearchResults(results) {
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = results.map((city) => {
+                const cityData = JSON.stringify(city).replace(/"/g, '&quot;');
+                return `<div class="search-result-item" onclick='addCity(${cityData})'>
+                    <strong>${city.name}</strong>
+                    <div class="city-details">${city.admin1 ? city.admin1 + ', ' : ''}${city.country}</div>
+                </div>`;
+            }).join('');
+            resultsDiv.style.display = 'block';
+        }
+
+        // Add city to saved list
+        async function addCity(city) {
             document.getElementById('searchResults').style.display = 'none';
             document.getElementById('searchInput').value = '';
             
-            if (savedCities.length >= 6) {
-                alert('You can only save up to 6 cities. Please delete one first.');
+            // Check if city already exists
+            const exists = savedCities.find(c => c.latitude === city.latitude && c.longitude === city.longitude);
+            if (exists) {
+                renderCityCards();
                 return;
             }
             
-            if (savedCities.some(c => c.latitude === lat && c.longitude === lon)) {
-                alert('This city is already in your list!');
-                return;
+            // Add city with placeholder data first
+            const cityData = {
+                name: city.name,
+                country: city.country,
+                admin1: city.admin1,
+                latitude: city.latitude,
+                longitude: city.longitude,
+                timezone: city.timezone,
+                weatherData: null
+            };
+            
+            savedCities.push(cityData);
+            renderCityCards();
+            
+            try {
+                const weatherData = await fetchWeatherData(city.latitude, city.longitude, city.timezone);
+                cityData.weatherData = weatherData;
+                // localStorage.setItem('heliosCities', JSON.stringify(savedCities)); // Removed - server save handles this
+                renderCityCards();
+            } catch (error) {
+                console.error('Failed to fetch weather data:', error);
+                const index = savedCities.indexOf(cityData);
+                if (index > -1) {
+                    savedCities.splice(index, 1);
+                }
+                renderCityCards();
+                alert('Failed to load weather data for ' + city.name + '. Please try again.');
+            }
+        }
+
+        // Fetch weather data - use Weather.gov for US, Open-Meteo for international
+        async function fetchWeatherData(lat, lon, timezone) {
+            // Check if coordinates are in USA
+            const isUS = lat >= 24.5 && lat <= 49.4 && lon >= -125 && lon <= -66;
+            
+            if (isUS) {
+                try {
+                    console.log('Attempting Weather.gov API for US location...');
+                    
+                    // Get grid point data
+                    const pointsUrl = `https://api.weather.gov/points/${lat.toFixed(4)},${lon.toFixed(4)}`;
+                    const pointsResponse = await fetch(pointsUrl);
+                    
+                    if (pointsResponse.ok) {
+                        const pointsData = await pointsResponse.json();
+                        const forecastHourlyUrl = pointsData.properties.forecastHourly;
+                        
+                        // Get hourly forecast
+                        const hourlyResponse = await fetch(forecastHourlyUrl);
+                        
+                        if (hourlyResponse.ok) {
+                            const hourlyData = await hourlyResponse.json();
+                            console.log('Weather.gov data retrieved successfully');
+                            
+                            // Convert Weather.gov format to our expected format
+                            const converted = convertWeatherGovData(hourlyData, timezone);
+                            
+                            // Still need sunrise/sunset from Open-Meteo
+                            const sunUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min&timezone=${encodeURIComponent(timezone)}`;
+                            const sunResponse = await fetch(sunUrl);
+                            const sunData = await sunResponse.json();
+                            
+                            converted.daily = sunData.daily;
+                            
+                            return converted;
+                        }
+                    }
+                    
+                    console.log('Weather.gov failed, falling back to Open-Meteo');
+                } catch (error) {
+                    console.log('Weather.gov error:', error.message, '- using Open-Meteo');
+                }
             }
             
-            document.getElementById('loadingCities').style.display = 'block';
+            // Fallback to Open-Meteo (or primary for non-US)
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,cloud_cover,precipitation,weather_code&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=${encodeURIComponent(timezone)}`;
             
-            const weatherData = await fetchWeatherData(lat, lon, timezone);
+            const response = await fetch(url);
+            const data = await response.json();
             
-            savedCities.push({
-                name,
-                latitude: lat,
-                longitude: lon,
-                timezone,
-                weatherData
+            return data;
+        }
+        
+        // Convert Weather.gov format to Open-Meteo format
+        function convertWeatherGovData(weatherGovData, timezone) {
+            const periods = weatherGovData.properties.periods;
+            
+            const converted = {
+                hourly: {
+                    time: [],
+                    temperature_2m: [],
+                    cloud_cover: [],
+                    precipitation: [],
+                    weather_code: []
+                }
+            };
+            
+            periods.forEach(period => {
+                // Time
+                converted.hourly.time.push(period.startTime.split('T')[0] + 'T' + period.startTime.split('T')[1].split('-')[0].split('+')[0].substring(0, 5));
+                
+                // Temperature
+                converted.hourly.temperature_2m.push(period.temperature);
+                
+                // Cloud cover estimation from shortForecast
+                const forecast = period.shortForecast.toLowerCase();
+                let cloudCover = 50;
+                if (forecast.includes('sunny') || forecast.includes('clear')) cloudCover = 5;
+                else if (forecast.includes('mostly clear') || forecast.includes('mostly sunny')) cloudCover = 15;
+                else if (forecast.includes('partly cloudy') || forecast.includes('partly sunny')) cloudCover = 40;
+                else if (forecast.includes('mostly cloudy')) cloudCover = 75;
+                else if (forecast.includes('cloudy') || forecast.includes('overcast')) cloudCover = 90;
+                converted.hourly.cloud_cover.push(cloudCover);
+                
+                // Precipitation (Weather.gov gives probability, convert to amount estimate)
+                const precipProb = period.probabilityOfPrecipitation?.value || 0;
+                converted.hourly.precipitation.push(precipProb > 50 ? 0.1 : 0);
+                
+                // Weather code mapping
+                let weatherCode = 1; // default: mainly clear
+                if (forecast.includes('sunny') || forecast.includes('clear')) weatherCode = 0;
+                else if (forecast.includes('partly')) weatherCode = 2;
+                else if (forecast.includes('cloudy') || forecast.includes('overcast')) weatherCode = 3;
+                else if (forecast.includes('fog')) weatherCode = 45;
+                else if (forecast.includes('drizzle')) weatherCode = 51;
+                else if (forecast.includes('rain') && !forecast.includes('thunder')) weatherCode = 61;
+                else if (forecast.includes('snow')) weatherCode = 71;
+                else if (forecast.includes('thunder')) weatherCode = 95;
+                converted.hourly.weather_code.push(weatherCode);
             });
             
-            await saveCitiesToServer();
-            await renderCityCards();
-            
-            document.getElementById('loadingCities').style.display = 'none';
+            return converted;
         }
 
-        async function deleteCity(index) {
-            if (confirm(`Remove ${savedCities[index].name} from your dashboard?`)) {
-                savedCities.splice(index, 1);
-                await saveCitiesToServer();
-                await renderCityCards();
-            }
-        }
-
-        // ============================================================
-        // RENDERING
-        // ============================================================
-        function getCurrentHelioScore(city) {
-            const now = new Date();
-            const sunPos = SunCalc.getPosition(now, city.latitude, city.longitude);
-            const solarElevation = sunPos.altitude * (180 / Math.PI);
-            
-            const currentHour = now.getUTCHours();
-            const weatherCode = city.weatherData.hourly.weather_code[currentHour];
-            const cloudCover = city.weatherData.hourly.cloud_cover[currentHour];
-            
-            return { solarElevation, weatherCode, cloudCover };
-        }
-
-        async function renderCityCards() {
+        // Render city cards
+        function renderCityCards() {
             const grid = document.getElementById('citiesGrid');
+            const emptyState = document.getElementById('emptyState');
             
             if (savedCities.length === 0) {
-                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: white; font-size: 18px;">Search for a city above to add it to your dashboard</div>';
+                emptyState.style.display = 'block';
+                emptyState.innerHTML = '<h2>Welcome to Helios</h2><p>Search for a city to add it to your dashboard</p>';
+                grid.innerHTML = '';
                 return;
             }
             
-            const cards = await Promise.all(savedCities.map(async (city, index) => {
-                const { solarElevation, weatherCode, cloudCover } = getCurrentHelioScore(city);
-                const score = await calculateHelioScore(solarElevation, weatherCode, cloudCover);
+            emptyState.style.display = 'none';
+            
+            grid.innerHTML = savedCities.map((city, index) => {
+                if (!city.weatherData || !city.weatherData.daily || !city.weatherData.hourly) {
+                    return `
+                        <div class="city-card" style="position: relative;">
+                            <button class="delete-city" onclick="event.stopPropagation(); deleteCity(${index})">Ã—</button>
+                            <div class="city-card-header">
+                                <div class="city-info">
+                                    <div class="city-name">${city.name}</div>
+                                    <div class="city-country">${city.admin1 ? city.admin1 + ', ' : ''}${city.country}</div>
+                                </div>
+                            </div>
+                            <div style="padding: 20px; color: #999; text-align: center;">Loading...</div>
+                        </div>
+                    `;
+                }
                 
-                const now = new Date();
-                const localTime = now.toLocaleTimeString('en-US', { 
-                    timeZone: city.timezone,
-                    hour: 'numeric',
-                    minute: '2-digit'
-                });
+                const data = city.weatherData;
+                const currentLocal = getCurrentLocalTime(city.timezone);
+                const currentMinutes = toMinutes(currentLocal);
                 
-                const scoreClass = `score-${Math.round(score)}`;
-                const temp = Math.round(city.weatherData.hourly.temperature_2m[now.getUTCHours()]);
+                const sunrise = parseLocalTime(data.daily.sunrise[0]);
+                const sunset = parseLocalTime(data.daily.sunset[0]);
+                const sunriseMinutes = toMinutes(sunrise);
+                const sunsetMinutes = toMinutes(sunset);
+                
+                const hourly = data.hourly;
+                
+                let currentIndex = 0;
+                for (let i = 0; i < hourly.time.length; i++) {
+                    const hourTime = parseLocalTime(hourly.time[i]);
+                    if (hourTime.day === currentLocal.day && hourTime.hour === currentLocal.hour) {
+                        currentIndex = i;
+                        break;
+                    }
+                }
+                
+                const currentTemp = Math.round(hourly.temperature_2m[currentIndex]);
+                const currentCloud = hourly.cloud_cover[currentIndex];
+                const currentWeatherCode = hourly.weather_code[currentIndex];
+                const currentISOTime = hourly.time[currentIndex];
+                const currentTimestamp = createTimestampFromISO(currentISOTime, city.timezone);
+                const currentScore = calculateBrightnessScore(currentWeatherCode, currentCloud, city.latitude, city.longitude, currentTimestamp);
+                
+                let dayScores = [];
+                for (let j = 0; j < 24 && j < hourly.time.length; j++) {
+                    const isoTime = hourly.time[j];
+                    const timestamp = createTimestampFromISO(isoTime, city.timezone);
+                    const weatherCode = hourly.weather_code[j];
+                    const cloudCover = hourly.cloud_cover[j];
+                    const score = calculateBrightnessScore(
+                        weatherCode,
+                        cloudCover,
+                        city.latitude,
+                        city.longitude,
+                        timestamp
+                    );
+                    if (score > 0) { // Only count daytime hours
+                        dayScores.push(score);
+                    }
+                }
+                const dailyScore = dayScores.length > 0 
+                    ? dayScores.reduce((a, b) => a + b, 0) / dayScores.length 
+                    : 0;
                 
                 return `
-                    <div class="city-card">
-                        <button class="delete-city-btn" onclick="event.stopPropagation(); deleteCity(${index})">×</button>
-                        <div class="city-header">
-                            <div>
+                    <div class="city-card" onclick="showCityDetail(savedCities[${index}])" style="position: relative;">
+                        <button class="delete-city" onclick="event.stopPropagation(); deleteCity(${index})">Ã—</button>
+                        <div class="city-card-header">
+                            <div class="city-info">
                                 <div class="city-name">${city.name}</div>
-                                <div class="local-time">${localTime}</div>
+                                <div class="city-country">${city.admin1 ? city.admin1 + ', ' : ''}${city.country}</div>
+                            </div>
+                            <div class="current-helio-compact">
+                                <div class="helio-score-compact ${getScoreClass(currentScore)}">
+                                    ${currentScore > 0 ? currentScore.toFixed(1) : 'N/A'}
+                                </div>
+                                <div class="score-label-compact">${getScoreLabel(currentScore)}</div>
                             </div>
                         </div>
-                        <div class="helio-score-large ${scoreClass}">${score.toFixed(1)}</div>
-                        <div class="weather-details">
-                            <div class="weather-detail">
-                                ${icons.thermometer}
-                                <span>${temp}°C</span>
+                        
+                        <div class="card-stats">
+                            <div class="stat-item">
+                                <div class="stat-label">Temperature</div>
+                                <div class="stat-value">${currentTemp}Â°F</div>
                             </div>
-                            <div class="weather-detail">
-                                ${icons.cloud}
-                                <span>${cloudCover}%</span>
+                            <div class="stat-item">
+                                <div class="stat-label">Daily Avg</div>
+                                <div class="stat-value ${getScoreClass(dailyScore)}">${dailyScore > 0 ? dailyScore.toFixed(1) : 'N/A'}</div>
                             </div>
                         </div>
                     </div>
                 `;
-            }));
-            
-            grid.innerHTML = cards.join('');
+            }).join('');
         }
 
-        // ============================================================
-        // EVENT HANDLERS
-        // ============================================================
-        document.getElementById('showSignup').addEventListener('click', (e) => {
-            e.preventDefault();
-            showSignupView();
-        });
+        // Delete city
+        function deleteCity(index) {
+            savedCities.splice(index, 1);
+            // localStorage.setItem('heliosCities', JSON.stringify(savedCities)); // Removed - server save handles this
+            renderCityCards();
+        }
 
-        document.getElementById('showLogin').addEventListener('click', (e) => {
-            e.preventDefault();
-            showLoginView();
-        });
+        // Show city detail view
+        function showCityDetail(city) {
+            document.getElementById('citiesView').style.display = 'none';
+            document.getElementById('detailView').style.display = 'block';
+            document.getElementById('backButton').style.display = 'block';
+            
+            displayDetailedWeather(city);
+        }
 
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('loginBtn');
-            const errorDiv = document.getElementById('loginError');
+        // Show cities view
+        function showCitiesView() {
+            document.getElementById('citiesView').style.display = 'block';
+            document.getElementById('detailView').style.display = 'none';
+            document.getElementById('backButton').style.display = 'none';
+        }
+
+        // Display detailed weather
+        function displayDetailedWeather(city) {
+            const data = city.weatherData;
+            const currentLocal = getCurrentLocalTime(city.timezone);
+            const currentMinutes = toMinutes(currentLocal);
             
-            btn.disabled = true;
-            btn.textContent = 'Logging in...';
-            errorDiv.classList.remove('show');
+            const sunrise = parseLocalTime(data.daily.sunrise[0]);
+            const sunset = parseLocalTime(data.daily.sunset[0]);
+            const sunriseMinutes = toMinutes(sunrise);
+            const sunsetMinutes = toMinutes(sunset);
             
-            try {
-                const username = document.getElementById('loginUsername').value;
-                const password = document.getElementById('loginPassword').value;
-                const remember = document.getElementById('rememberMe').checked;
+            const hourly = data.hourly;
+            
+            let currentIndex = 0;
+            for (let i = 0; i < hourly.time.length; i++) {
+                const hourTime = parseLocalTime(hourly.time[i]);
+                if (hourTime.day === currentLocal.day && hourTime.hour === currentLocal.hour) {
+                    currentIndex = i;
+                    break;
+                }
+            }
+
+            const currentTemp = Math.round(hourly.temperature_2m[currentIndex]);
+            const currentCloud = hourly.cloud_cover[currentIndex];
+            const currentPrecip = hourly.precipitation[currentIndex];
+            const currentWeatherCode = hourly.weather_code[currentIndex];
+            const currentISOTime = hourly.time[currentIndex];
+            const currentTimestamp = createTimestampFromISO(currentISOTime, city.timezone);
+            const currentScore = calculateBrightnessScore(currentWeatherCode, currentCloud, city.latitude, city.longitude, currentTimestamp);
+
+            document.getElementById('detailCityName').textContent = city.name;
+            document.getElementById('detailHelioScore').textContent = currentScore > 0 ? currentScore.toFixed(1) : 'N/A';
+            document.getElementById('detailHelioScore').className = `helio-score-large ${getScoreClass(currentScore)}`;
+            document.getElementById('detailScoreLabel').textContent = getScoreLabel(currentScore);
+
+            const weatherInfo = weatherCodes[currentWeatherCode] || { name: 'Unknown', icon: icons.sun };
+            
+            document.getElementById('detailWeatherDetails').innerHTML = `
+                <div class="detail-item">
+                    <div class="detail-label">${icons.thermometer} Temperature</div>
+                    <div class="detail-value">${currentTemp}Â°F</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Conditions</div>
+                    <div class="detail-value">
+                        <div style="margin-bottom: 8px;">${weatherInfo.name}</div>
+                        <div id="weatherIconContainer"></div>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">${icons.cloud} Cloud Cover</div>
+                    <div class="detail-value">${currentCloud}%</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">${icons.droplet} Precipitation</div>
+                    <div class="detail-value">${currentPrecip.toFixed(1)}"</div>
+                </div>
+            `;
+            
+            // Insert the icon properly
+            document.getElementById('weatherIconContainer').innerHTML = weatherInfo.icon;
+
+            // Sunshine pattern
+            displaySunshinePattern(hourly, sunrise, sunset, sunriseMinutes, sunsetMinutes);
+
+            // Hourly forecast
+            let hourlyHTML = '';
+            for (let i = currentIndex; i < Math.min(currentIndex + 24, hourly.time.length); i++) {
+                const hourTime = parseLocalTime(hourly.time[i]);
+                const isoTime = hourly.time[i];
+                const timestamp = createTimestampFromISO(isoTime, city.timezone);
+                const temp = Math.round(hourly.temperature_2m[i]);
+                const cloud = hourly.cloud_cover[i];
+                const weatherCode = hourly.weather_code[i];
+                const score = calculateBrightnessScore(weatherCode, cloud, city.latitude, city.longitude, timestamp);
+                const weather = weatherCodes[weatherCode] || { name: 'Unknown', icon: icons.sun };
+                const isNight = score === 0;
+
+                hourlyHTML += `
+                    <div class="hourly-item ${isNight ? 'nighttime' : 'daytime'}">
+                        <div class="hourly-time">${formatTime(hourTime)}</div>
+                        <div class="hourly-icon">${isNight ? icons.moon : weather.icon}</div>
+                        <div class="hourly-score ${getScoreClass(score)}">${score > 0 ? score.toFixed(1) : 'N/A'}</div>
+                        <div class="hourly-temp">${temp}Â°F</div>
+                    </div>
+                `;
+            }
+            document.getElementById('hourlyForecast').innerHTML = hourlyHTML;
+
+            // 7-day forecast
+            let dailyHTML = '';
+            for (let i = 0; i < 7; i++) {
+                const dayName = getDayName(data.daily.time[i], i === 0);
+                const maxTemp = Math.round(data.daily.temperature_2m_max[i]);
+                const minTemp = Math.round(data.daily.temperature_2m_min[i]);
                 
-                const data = await login(username, password);
-                sessionToken = data.token;
-                currentUser = data.username;
+                const daySunrise = parseLocalTime(data.daily.sunrise[i]);
+                const daySunset = parseLocalTime(data.daily.sunset[i]);
+                const daySunriseMin = toMinutes(daySunrise);
+                const daySunsetMin = toMinutes(daySunset);
                 
-                if (remember) {
-                    localStorage.setItem('heliosToken', sessionToken);
+                let dayScores = [];
+                let dayScoresWithIndex = [];
+                
+                // Analyze full 24-hour period for each day to find the absolute best light
+                // Even for "Today", show when the best light WAS/WILL BE for planning purposes
+                const dayStart = i * 24;
+                const dayEnd = Math.min(dayStart + 24, hourly.time.length);
+                
+                for (let j = dayStart; j < dayEnd; j++) {
+                    const isoTime = hourly.time[j];
+                    const timestamp = createTimestampFromISO(isoTime, city.timezone);
+                    const hourTime = parseLocalTime(isoTime);
+                    const weatherCode = hourly.weather_code[j];
+                    const cloudCover = hourly.cloud_cover[j];
+                    const score = calculateBrightnessScore(
+                        weatherCode,
+                        cloudCover,
+                        city.latitude,
+                        city.longitude,
+                        timestamp
+                    );
+                    if (score > 0) { // Only count daytime
+                        dayScores.push(score);
+                        dayScoresWithIndex.push({score, hour: hourTime.hour, weatherCode});
+                    }
                 }
                 
-                // Load user's cities
-                const cities = await getUserCities();
-                savedCities = [];
+                const avgScore = dayScores.length > 0 
+                    ? dayScores.reduce((a, b) => a + b, 0) / dayScores.length 
+                    : 0;
                 
-                for (const city of cities) {
-                    const weatherData = await fetchWeatherData(city.latitude, city.longitude, 'auto');
-                    savedCities.push({
-                        name: city.city_name,
-                        latitude: city.latitude,
-                        longitude: city.longitude,
-                        timezone: 'auto',
-                        weatherData
+                if (i === 6) { // Saturday
+                    console.warn('ðŸ“… SATURDAY DEBUG:', {
+                        dayStart,
+                        dayEnd,
+                        totalHours: dayEnd - dayStart,
+                        dayScoresCount: dayScores.length,
+                        avgScore: avgScore.toFixed(2),
+                        sunrise: data.daily.sunrise[i],
+                        sunset: data.daily.sunset[i],
+                        firstScores: dayScoresWithIndex.slice(0, 3).map(s => `${s.hour}:00 = ${s.score.toFixed(1)}`).join(', ')
                     });
                 }
-                
-                showDashboard();
-                await renderCityCards();
-                
-            } catch (error) {
-                errorDiv.textContent = error.message;
-                errorDiv.classList.add('show');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Log In';
-            }
-        });
 
-        document.getElementById('signupForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('signupBtn');
-            const errorDiv = document.getElementById('signupError');
-            
-            btn.disabled = true;
-            btn.textContent = 'Creating account...';
-            errorDiv.classList.remove('show');
-            
-            try {
-                const username = document.getElementById('signupUsername').value;
-                const password = document.getElementById('signupPassword').value;
-                const confirmPassword = document.getElementById('signupPasswordConfirm').value;
+                // Get description and peak info
+                const peakInfo = getDailySunshineDescription(dayScoresWithIndex, dayName);
                 
-                if (password !== confirmPassword) {
-                    throw new Error('Passwords do not match');
+                // Determine day class for styling
+                let dayClass = '';
+                if (avgScore >= 4.5) dayClass = 'excellent-day';
+                else if (avgScore >= 3.5) dayClass = 'good-day';
+
+                dailyHTML += `
+                    <div class="daily-item ${dayClass}">
+                        <div class="daily-day">${dayName}</div>
+                        <div class="daily-score ${getScoreClass(avgScore)}">${avgScore > 0 ? avgScore.toFixed(1) : 'N/A'}</div>
+                        <div class="daily-summary">
+                            <div>${maxTemp}Â°F / ${minTemp}Â°F Â· ${getScoreLabel(avgScore)}</div>
+                            <div class="daily-description">${peakInfo.description}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            document.getElementById('dailyForecast').innerHTML = dailyHTML;
+        }
+
+        // Display sunshine pattern
+        function displaySunshinePattern(hourly, sunrise, sunset, sunriseMinutes, sunsetMinutes) {
+            // Calculate daylight hours
+            const daylightMinutes = sunsetMinutes - sunriseMinutes;
+            const daylightHours = (daylightMinutes / 60).toFixed(1);
+            
+            // Update section title with daylight info
+            const sunshineTitle = document.querySelector('#detailView .detail-card:nth-child(2) .section-title');
+            if (sunshineTitle) {
+                sunshineTitle.innerHTML = `
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    <div style="flex: 1;">
+                        <div>Today's Sunshine Pattern</div>
+                        <div style="font-size: 13px; font-weight: 400; color: #666; margin-top: 4px;">
+                            ${daylightHours} hrs of daylight Â· Sunrise ${formatTime(sunrise)} Â· Sunset ${formatTime(sunset)}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            const segments = [];
+            let currentType = null;
+            let currentStart = 0;
+            
+            for (let hour = 0; hour < 24; hour++) {
+                const hourMinutes = hour * 60;
+                const isDay = isDaytime(hourMinutes, sunriseMinutes, sunsetMinutes);
+                
+                let type;
+                if (!isDay) {
+                    type = 'night';
+                } else if (hour < hourly.weather_code.length) {
+                    const weatherCode = hourly.weather_code[hour];
+                    const weather = weatherCodes[weatherCode] || { type: 'sunny' };
+                    type = weather.type;
+                } else {
+                    type = 'sunny';
                 }
                 
-                const data = await signup(username, password);
-                sessionToken = data.token;
-                currentUser = data.username;
-                
-                localStorage.setItem('heliosToken', sessionToken);
-                
-                showDashboard();
-                await renderCityCards();
-                
-            } catch (error) {
-                errorDiv.textContent = error.message;
-                errorDiv.classList.add('show');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Create Account';
+                if (type !== currentType) {
+                    if (currentType !== null) {
+                        segments.push({
+                            type: currentType,
+                            start: currentStart,
+                            hours: hour - currentStart
+                        });
+                    }
+                    currentType = type;
+                    currentStart = hour;
+                }
             }
-        });
+            
+            if (currentType !== null) {
+                segments.push({
+                    type: currentType,
+                    start: currentStart,
+                    hours: 24 - currentStart
+                });
+            }
+            
+            const patternBar = document.getElementById('patternBar');
+            const legendIcons = {
+                'sunny': icons.sun,
+                'partly-cloudy': icons.partlyCloudy,
+                'cloudy': icons.cloudy,
+                'rainy': icons.rainy,
+                'night': icons.moon
+            };
+            
+            patternBar.innerHTML = segments.map(seg => {
+                const percentage = (seg.hours / 24) * 100;
+                return `<div class="pattern-segment ${seg.type}" style="width: ${percentage}%" title="${seg.hours}h ${seg.type}"></div>`;
+            }).join('');
+            
+            document.getElementById('patternTimes').innerHTML = `
+                <span>12 AM</span>
+                <span>6 AM</span>
+                <span>12 PM</span>
+                <span>6 PM</span>
+                <span>12 AM</span>
+            `;
+            
+            document.getElementById('patternLegend').innerHTML = `
+                <div class="legend-item"><div class="legend-color" style="background: #FFD93D;"></div>Sunny</div>
+                <div class="legend-item"><div class="legend-color" style="background: #FFB347;"></div>Partly Cloudy</div>
+                <div class="legend-item"><div class="legend-color" style="background: #B0E0E6;"></div>Cloudy</div>
+                <div class="legend-item"><div class="legend-color" style="background: #5B9BD5;"></div>Rainy</div>
+                <div class="legend-item"><div class="legend-color" style="background: #1a237e;"></div>Night</div>
+            `;
+        }
 
-        document.getElementById('logoutBtn').addEventListener('click', logout);
-
+        // Event listeners
         document.getElementById('searchInput').addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
             const query = e.target.value.trim();
@@ -893,7 +2130,19 @@ the prior written permission of the copyright holder.
                 return;
             }
             
-            searchTimeout = setTimeout(() => searchCities(query), 300);
+            searchTimeout = setTimeout(() => {
+                searchCities(query);
+            }, 300);
+        });
+
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                clearTimeout(searchTimeout);
+                const query = e.target.value.trim();
+                if (query.length >= 2) {
+                    searchCities(query);
+                }
+            }
         });
 
         document.getElementById('searchBtn').addEventListener('click', () => {
@@ -909,60 +2158,362 @@ the prior written permission of the copyright holder.
             }
         });
 
+        // Initialize
+        renderCityCards();
+
+        // Auto-refresh weather data every 5 minutes
+        setInterval(async () => {
+            for (let i = 0; i < savedCities.length; i++) {
+                const city = savedCities[i];
+                city.weatherData = await fetchWeatherData(city.latitude, city.longitude, city.timezone);
+            }
+            // localStorage.setItem('heliosCities', JSON.stringify(savedCities)); // Removed - data already in server
+            renderCityCards();
+        }, 300000);
+    </script>
+</body>
+
         // ============================================================
-        // INITIALIZATION
+        // AUTHENTICATION SYSTEM
         // ============================================================
-        async function init() {
-            // Check for saved session
-            const savedToken = localStorage.getItem('heliosToken');
+        const WORKER_URL = 'https://helios.skyler-mydler.workers.dev';
+        let sessionToken = null;
+        let currentUser = null;
+
+        // Auth UI Functions
+        function showLoginForm() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('loginError').classList.remove('show');
+            document.getElementById('loginError').textContent = '';
+        }
+
+        function showSignupForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'block';
+            document.getElementById('signupError').classList.remove('show');
+            document.getElementById('signupError').textContent = '';
+            // Clear form to prevent autofill security issue
+            document.getElementById('signupUsername').value = '';
+            document.getElementById('signupPassword').value = '';
+            document.getElementById('signupPasswordConfirm').value = '';
+        }
+
+        function hideAuthOverlay() {
+            document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('userBar').classList.add('visible');
+            document.getElementById('cityLimitNotice').classList.add('visible');
+        }
+
+        function showAuthOverlay() {
+            document.getElementById('authOverlay').classList.remove('hidden');
+            document.getElementById('userBar').classList.remove('visible');
+            document.getElementById('cityLimitNotice').classList.remove('visible');
+        }
+
+        // API Functions
+        async function handleLogin() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const remember = document.getElementById('rememberMe').checked;
+            const errorDiv = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn');
             
-            if (savedToken) {
-                sessionToken = savedToken;
+            if (!username || !password) {
+                errorDiv.textContent = 'Please enter username and password';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Logging in...';
+            errorDiv.classList.remove('show');
+            
+            try {
+                const response = await fetch(`${WORKER_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
                 
-                try {
-                    // Verify token by trying to get cities
-                    const cities = await getUserCities();
-                    
-                    // Token is valid, load cities
-                    savedCities = [];
-                    for (const city of cities) {
-                        const weatherData = await fetchWeatherData(city.latitude, city.longitude, 'auto');
-                        savedCities.push({
-                            name: city.city_name,
-                            latitude: city.latitude,
-                            longitude: city.longitude,
-                            timezone: 'auto',
-                            weatherData
-                        });
-                    }
-                    
-                    // Get username from token (we'll need to decode it or store it)
-                    currentUser = 'User'; // For now
-                    showDashboard();
-                    await renderCityCards();
-                    
-                } catch (error) {
-                    // Token invalid, show login
-                    localStorage.removeItem('heliosToken');
-                    showLoginView();
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error);
+                
+                sessionToken = data.token;
+                currentUser = data.username;
+                
+                if (remember) {
+                    localStorage.setItem('heliosToken', sessionToken);
+                    localStorage.setItem('heliosUsername', currentUser);
                 }
-            } else {
-                showLoginView();
+                
+                document.getElementById('displayUsername').textContent = currentUser;
+                
+                // Load user cities
+                await loadUserCitiesFromServer();
+                
+                hideAuthOverlay();
+                renderCityCards();
+                
+            } catch (error) {
+                errorDiv.textContent = error.message || 'Login failed';
+                errorDiv.classList.add('show');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Log In';
             }
         }
 
-        // Start app
-        init();
-
-        // Auto-refresh weather every 5 minutes
-        setInterval(async () => {
-            if (currentUser && savedCities.length > 0) {
-                for (let city of savedCities) {
-                    city.weatherData = await fetchWeatherData(city.latitude, city.longitude, city.timezone);
-                }
-                await renderCityCards();
+        async function handleSignup() {
+            const username = document.getElementById('signupUsername').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('signupPasswordConfirm').value;
+            const errorDiv = document.getElementById('signupError');
+            const btn = document.getElementById('signupBtn');
+            
+            if (!username || !password || !confirmPassword) {
+                errorDiv.textContent = 'Please fill in all fields';
+                errorDiv.classList.add('show');
+                return;
             }
-        }, 300000);
+
+            if (password !== confirmPassword) {
+                errorDiv.textContent = 'Passwords do not match';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Creating account...';
+            errorDiv.classList.remove('show');
+            
+            try {
+                const response = await fetch(`${WORKER_URL}/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error);
+                
+                sessionToken = data.token;
+                currentUser = data.username;
+                
+                localStorage.setItem('heliosToken', sessionToken);
+                localStorage.setItem('heliosUsername', currentUser);
+                
+                document.getElementById('displayUsername').textContent = currentUser;
+                
+                // New user starts with empty cities
+                savedCities = [];
+                
+                hideAuthOverlay();
+                renderCityCards();
+                
+            } catch (error) {
+                errorDiv.textContent = error.message || 'Signup failed';
+                errorDiv.classList.add('show');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Account';
+            }
+        }
+
+        async function handleLogout() {
+            if (sessionToken) {
+                try {
+                    await fetch(`${WORKER_URL}/auth/logout`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${sessionToken}` }
+                    });
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            }
+            
+            sessionToken = null;
+            currentUser = null;
+            savedCities = [];
+            localStorage.removeItem('heliosToken');
+            localStorage.removeItem('heliosUsername');
+            localStorage.removeItem('heliosCities'); // Clear old localStorage
+            
+            showAuthOverlay();
+            showLoginForm();
+            renderCityCards();
+        }
+
+        async function loadUserCitiesFromServer() {
+            try {
+                const response = await fetch(`${WORKER_URL}/user/cities`, {
+                    headers: { 'Authorization': `Bearer ${sessionToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // Token expired or invalid
+                        throw new Error('Session expired');
+                    }
+                    throw new Error(data.error);
+                }
+                
+                // Load cities with weather data
+                savedCities = [];
+                
+                for (const city of data.cities) {
+                    try {
+                        // FIX: Use actual timezone from geocoding, not 'auto'
+                        const weatherData = await fetchWeatherData(
+                            city.latitude, 
+                            city.longitude, 
+                            'auto' // Let Open-Meteo determine timezone
+                        );
+                        
+                        savedCities.push({
+                            name: city.city_name,
+                            country: '', // We don't store this, it's ok
+                            admin1: '',
+                            latitude: city.latitude,
+                            longitude: city.longitude,
+                            timezone: weatherData.timezone || 'auto', // Use timezone from weather API
+                            weatherData: weatherData
+                        });
+                    } catch (error) {
+                        console.error(`Failed to load weather for ${city.city_name}:`, error);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error loading cities:', error);
+                if (error.message === 'Session expired') {
+                    handleLogout();
+                }
+                throw error;
+            }
+        }
+
+        async function saveCitiesToServer() {
+            if (!sessionToken) return;
+            
+            // Check 6 city limit
+            if (savedCities.length > 6) {
+                alert('Maximum 6 cities allowed. Please delete some cities first.');
+                return false;
+            }
+            
+            try {
+                const citiesToSave = savedCities.map(city => ({
+                    city_name: city.name,
+                    latitude: city.latitude,
+                    longitude: city.longitude
+                }));
+
+                const response = await fetch(`${WORKER_URL}/user/cities`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionToken}`
+                    },
+                    body: JSON.stringify({ cities: citiesToSave })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        handleLogout();
+                        return false;
+                    }
+                    throw new Error(data.error);
+                }
+                
+                return true;
+                
+            } catch (error) {
+                console.error('Error saving cities:', error);
+                alert('Failed to save cities: ' + error.message);
+                return false;
+            }
+        }
+
+        // Override the original addCity function to include server save and 6-city limit
+        const originalAddCity = addCity;
+        addCity = async function(city) {
+            // Check 6 city limit BEFORE adding
+            if (savedCities.length >= 6) {
+                alert('You can only save up to 6 cities. Please delete one first.');
+                return;
+            }
+            
+            // Call original function
+            await originalAddCity(city);
+            
+            // Save to server
+            await saveCitiesToServer();
+        };
+
+        // Override the original deleteCity function to include server save
+        const originalDeleteCity = deleteCity;
+        deleteCity = async function(index) {
+            // Call original function
+            originalDeleteCity(index);
+            
+            // Save to server
+            await saveCitiesToServer();
+        };
+
+        // Auth Event Listeners
+        document.getElementById('showSignupLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            showSignupForm();
+        });
+
+        document.getElementById('showLoginLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            showLoginForm();
+        });
+
+        document.getElementById('loginFormElement').addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleLogin();
+        });
+
+        document.getElementById('signupFormElement').addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleSignup();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+
+        // Check for existing session on page load
+        window.addEventListener('load', async () => {
+            const savedToken = localStorage.getItem('heliosToken');
+            const savedUsername = localStorage.getItem('heliosUsername');
+            
+            if (savedToken && savedUsername) {
+                sessionToken = savedToken;
+                currentUser = savedUsername;
+                document.getElementById('displayUsername').textContent = currentUser;
+                
+                try {
+                    await loadUserCitiesFromServer();
+                    hideAuthOverlay();
+                    renderCityCards();
+                } catch (error) {
+                    console.error('Failed to restore session:', error);
+                    handleLogout();
+                }
+            } else {
+                // No saved session, show login
+                showAuthOverlay();
+            }
+        });
+
+        // Remove localStorage loading on startup (now handled by auth system)
+        savedCities = [];
     </script>
 </body>
 </html>
