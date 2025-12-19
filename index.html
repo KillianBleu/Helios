@@ -273,6 +273,7 @@
             margin-bottom: 20px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             text-align: center;
+            position: relative;
         }
 
         .detail-city-name {
@@ -295,6 +296,27 @@
         .detail-score-label {
             font-size: 24px;
             color: #666;
+        }
+
+        .detail-daily-avg {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            text-align: right;
+        }
+
+        .detail-daily-avg-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .detail-daily-avg-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
         }
 
         .detail-section {
@@ -1387,6 +1409,19 @@ async function showCityDetail(city) {
     document.getElementById('detailHelioScore').textContent = scores.currentScore > 0 ? scores.currentScore.toFixed(1) : 'N/A';
     document.getElementById('detailScoreLabel').textContent = getScoreLabel(scores.currentScore);
     
+    // Add daily average to header
+    const detailHeader = document.querySelector('.detail-header');
+    const existingAvg = detailHeader.querySelector('.detail-daily-avg');
+    if (existingAvg) existingAvg.remove(); // Remove if already exists
+    
+    const dailyAvgHTML = `
+        <div class="detail-daily-avg">
+            <div class="detail-daily-avg-label">Daily Average</div>
+            <div class="detail-daily-avg-value">${scores.dailyAverage > 0 ? scores.dailyAverage.toFixed(1) : 'N/A'}</div>
+        </div>
+    `;
+    detailHeader.insertAdjacentHTML('beforeend', dailyAvgHTML);
+    
     // Apply dynamic color to detail score based on value
     const detailScoreEl = document.getElementById('detailHelioScore');
     const scoreClass = scores.currentScore > 0 ? getScoreColorClass(scores.currentScore) : 'night';
@@ -1435,7 +1470,7 @@ async function showCityDetail(city) {
         return new Date(isoString).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
     }
     
-    // Current conditions with daylight info
+    // Current conditions - simplified
     const detailGrid = document.querySelector('.detail-grid');
     detailGrid.innerHTML = `
         <div class="detail-item">
@@ -1449,14 +1484,6 @@ async function showCityDetail(city) {
         <div class="detail-item">
             <div class="detail-label">Cloud Cover</div>
             <div class="detail-value">${scores.currentCloudCover}%</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Daily Average</div>
-            <div class="detail-value">${scores.dailyAverage > 0 ? scores.dailyAverage.toFixed(1) : 'N/A'}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Daylight Hours</div>
-            <div class="detail-value">${scores.daylightHours} hrs</div>
         </div>
     `;
     
