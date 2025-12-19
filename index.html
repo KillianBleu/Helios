@@ -999,6 +999,9 @@ async function handleSignup() {
 }
 
 async function handleLogout() {
+    // Check if user had remember me enabled before logout
+    const hadRememberMe = !!localStorage.getItem('heliosToken');
+    
     if (sessionToken) {
         try {
             await fetch(`${WORKER_URL}/auth/logout`, {
@@ -1018,10 +1021,14 @@ async function handleLogout() {
     localStorage.removeItem('heliosUsername');
     localStorage.removeItem('heliosApiToken');  // Remove ML token
     
-    // Clear login form to prevent autofill
-    document.getElementById('loginUsername').value = '';
-    document.getElementById('loginPassword').value = '';
-    document.getElementById('rememberMe').checked = true;
+    // Only clear form if user didn't have "remember me" checked
+    // If they did, browser autofill will restore their credentials
+    if (!hadRememberMe) {
+        document.getElementById('loginUsername').value = '';
+        document.getElementById('loginPassword').value = '';
+    }
+    
+    document.getElementById('rememberMe').checked = true;  // Reset to default checked
     
     showAuthOverlay();
     showLoginForm();
@@ -1683,7 +1690,9 @@ async function addCity(city) {
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-  
+    // ML token is now received from server after authentication
+    // No hardcoded token in public HTML for security
+    
     renderCityCards();
     
     const searchInput = document.getElementById('searchInput');
