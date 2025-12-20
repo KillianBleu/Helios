@@ -1355,6 +1355,39 @@ function stopAutoRefresh() {
     }
 }
 
+function forceReauth(reason = 'Session expired or token invalid. Please log in again.') {
+    console.warn('Force reauth:', reason);
+    API_TOKEN = '';
+    sessionToken = null;
+    currentUser = null;
+    // Clear session storage
+    sessionStorage.removeItem('heliosToken');
+    sessionStorage.removeItem('heliosUsername');
+    sessionStorage.removeItem('heliosApiToken');
+    // Clear persisted tokens (keep remember preference)
+    localStorage.removeItem('heliosToken');
+    localStorage.removeItem('heliosUsername');
+    localStorage.removeItem('heliosApiToken');
+    // Show auth overlay
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) overlay.style.display = 'flex';
+    alert(reason);
+}
+
+function getStoredApiToken() {
+    let t = sessionStorage.getItem('heliosApiToken');
+    if (!t) {
+        t = localStorage.getItem('heliosApiToken');
+        if (t) {
+            sessionStorage.setItem('heliosApiToken', t);
+        }
+    }
+    return t;
+}
+
+// Ensure in-memory API token is synced from storage at load
+API_TOKEN = getStoredApiToken() || API_TOKEN;
+
 function getScoreLabel(score) {
     if (score >= 4.5) return '☀️ Excellent';
     if (score >= 3.5) return '🌤️ Great';
@@ -1427,9 +1460,18 @@ async function fetchScoresFromWorker(lat, lon, cityName, timezone, retryCount = 
         });
         
         if (response.status === 401) {
-            localStorage.removeItem('heliosApiToken');
-            API_TOKEN = '';
-            alert('❌ Invalid API token. Please refresh and try again.');
+            const stored = getStoredApiToken();
+            // If there's a stored token different from the in-memory one, try it once
+            if (stored && stored !== API_TOKEN && retryCount === 0) {
+                console.warn('Detected mismatched API token; reloading from storage and retrying once.');
+                API_TOKEN = stored;
+                return fetchScoresFromWorker(lat, lon, cityName, timezone, retryCount + 1);
+            }
+            // Otherwise force reauth so the user can log back in (mobile-friendly)
+            if (!reauthTriggered) {
+                reauthTriggered = true;
+                forceReauth('Session expired. Please log in again.');
+            }
             return null;
         }
         
