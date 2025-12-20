@@ -1680,7 +1680,7 @@ async function showCityDetail(city) {
     // Sunshine pattern bar with time markers
     const patternSection = document.querySelectorAll('.detail-section')[1];
     let patternHTML = '<h2>Today\'s Sunshine Pattern</h2>';
-    patternHTML += '<div style="font-size: 13px; color: #666; margin-bottom: 15px;">';
+    patternHTML += '<div style="font-size: 13px; color: #333; margin-bottom: 15px; background: #f0f0f0; padding: 10px 15px; border-radius: 8px; display: inline-block;">';
     patternHTML += `${scores.daylightHours} hrs of daylight · Sunrise ${formatTime(scores.sunrise)} · Sunset ${formatTime(scores.sunset)}`;
     patternHTML += '</div>';
     
@@ -1739,14 +1739,14 @@ async function showCityDetail(city) {
         };
         
         // Time markers above the bar
-        patternHTML += '<div style="position: relative; margin-bottom: 5px; height: 20px;">';
+        patternHTML += '<div style="position: relative; margin-bottom: 5px; height: 30px;">';
         for (const seg of segments) {
             const leftPos = (seg.start / hourly24.length * 100).toFixed(2);
             const timeStr = getLocalTimeFromISO(seg.startTime);
-            patternHTML += `<div style="position: absolute; left: ${leftPos}%; font-size: 11px; color: #333; font-weight: 500; transform: translateX(-50%); white-space: nowrap;">${timeStr}</div>`;
+            patternHTML += `<div style="position: absolute; left: ${leftPos}%; font-size: 11px; color: #333; font-weight: 500; transform: translateX(-50%) rotate(-45deg); transform-origin: bottom left; white-space: nowrap;">${timeStr}</div>`;
         }
         // Add end time marker at 100% (11:59 PM)
-        patternHTML += `<div style="position: absolute; left: 100%; font-size: 11px; color: #333; font-weight: 500; transform: translateX(-100%); white-space: nowrap;">11:59 PM</div>`;
+        patternHTML += `<div style="position: absolute; left: 100%; font-size: 11px; color: #333; font-weight: 500; transform: translateX(-100%) rotate(-45deg); transform-origin: bottom right; white-space: nowrap;">11:59 PM</div>`;
         patternHTML += '</div>';
         
         // Pattern bar
