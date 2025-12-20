@@ -1597,7 +1597,7 @@ async function showCityDetail(city) {
     
     document.getElementById('detailCityName').textContent = city.name;
     
-    // Build the score display with gradient circle and label
+    // Build the score display with gradient circle and label - all centered
     const detailHeader = document.querySelector('.detail-header');
     const scoreClass = scores.currentScore > 0 ? getScoreColorClass(scores.currentScore) : 'night';
     const colorMap = {
@@ -1612,22 +1612,25 @@ async function showCityDetail(city) {
         'night': 'linear-gradient(135deg, #1e3a5f 0%, #0f1419 100%)'
     };
     
-    // Create score section HTML with label and gradient circle
+    // Create centered score section HTML
     const scoreHTML = `
-        <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
-            <div style="font-size: 18px; color: #666; font-weight: 500;">Current Helios Score:</div>
-            <div style="width: 100px; height: 100px; border-radius: 50%; background: ${colorMap[scoreClass]}; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 18px; color: #666; font-weight: 500; margin-bottom: 15px;">Current Helios Score:</div>
+            <div style="width: 100px; height: 100px; border-radius: 50%; background: ${colorMap[scoreClass]}; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
                 <span style="font-size: 42px; font-weight: 700; color: white;">${scores.currentScore > 0 ? scores.currentScore.toFixed(1) : 'N/A'}</span>
             </div>
         </div>
+        <div style="position: absolute; bottom: 20px; left: 20px;">
+            <div style="font-size: 24px; color: #666;">${getScoreLabel(scores.currentScore)}</div>
+        </div>
     `;
     
-    // Insert score HTML and update label
+    // Insert score HTML
     const existingScoreDiv = detailHeader.querySelector('.detail-helio-score');
     const existingLabelDiv = detailHeader.querySelector('.detail-score-label');
     if (existingScoreDiv && existingLabelDiv) {
         existingScoreDiv.outerHTML = scoreHTML;
-        existingLabelDiv.textContent = getScoreLabel(scores.currentScore);
+        existingLabelDiv.remove();
     }
     
     // Add daily average to header
@@ -1756,8 +1759,8 @@ async function showCityDetail(city) {
             const timeStr = getLocalTimeFromISO(seg.startTime);
             patternHTML += `<div style="position: absolute; left: ${leftPos}%; bottom: 0; font-size: 11px; color: #333; font-weight: 500; transform: rotate(-45deg); transform-origin: bottom left; white-space: nowrap;">${timeStr}</div>`;
         }
-        // Add end time marker at 100% (11:59 PM)
-        patternHTML += `<div style="position: absolute; right: 0; bottom: 0; font-size: 11px; color: #333; font-weight: 500; transform: rotate(-45deg); transform-origin: bottom right; white-space: nowrap;">11:59 PM</div>`;
+        // Add end time marker at 100% (11:59 PM) - positioned from right edge with same bottom alignment
+        patternHTML += `<div style="position: absolute; right: 0; bottom: 0; font-size: 11px; color: #333; font-weight: 500; transform: rotate(-45deg); transform-origin: bottom left; white-space: nowrap;">11:59 PM</div>`;
         patternHTML += '</div>';
         
         // Pattern bar
