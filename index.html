@@ -1439,8 +1439,18 @@ async function fetchScoresFromWorker(lat, lon, cityName, timezone, retryCount = 
     const MAX_RETRIES = 2;
     
     try {
+        // Ensure we have an API token in memory; reload from storage if missing
         if (!API_TOKEN) {
-            throw new Error('No token - initialization will handle this');
+            const storedToken = getStoredApiToken();
+            if (storedToken) {
+                API_TOKEN = storedToken;
+            } else {
+                if (!reauthTriggered) {
+                    reauthTriggered = true;
+                    forceReauth('Session expired. Please log in again.');
+                }
+                return null;
+            }
         }
         
         console.log('Fetching scores for:', cityName, 'Timezone:', timezone);
@@ -1531,6 +1541,13 @@ async function renderCityCards() {
     for (let index = 0; index < savedCities.length; index++) {
         const city = savedCities[index];
         const scores = await fetchScoresFromWorker(city.latitude, city.longitude, city.name, city.timezone);
+        
+        // If token failed and we haven't reauthed yet, trigger reauth once
+        if (!scores && !API_TOKEN && !reauthTriggered) {
+            reauthTriggered = true;
+            forceReauth('Session expired. Please log in again.');
+            return;
+        }
         
         const score = scores ? (scores.currentScore || 0) : 0;
         const daily = scores ? (scores.dailyAverage || 0) : 0;
