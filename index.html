@@ -1747,8 +1747,8 @@ async function showCityDetail(city) {
             const timeStr = getLocalTimeFromISO(seg.startTime);
             patternHTML += `<div style="position: absolute; left: ${leftPos}%; bottom: 0; font-size: 11px; color: #333; font-weight: 500; transform: rotate(-45deg); transform-origin: bottom left; white-space: nowrap;">${timeStr}</div>`;
         }
-        // Add end time marker at 100% (11:59 PM) - positioned from right edge with same bottom alignment
-        patternHTML += `<div style="position: absolute; right: 0; bottom: 0; font-size: 11px; color: #333; font-weight: 500; transform: rotate(-45deg); transform-origin: bottom left; white-space: nowrap;">11:59 PM</div>`;
+        // Add end time marker at 100% (11:59 PM) - marks the end of the day
+        patternHTML += `<div style="position: absolute; left: 100%; bottom: 0; font-size: 11px; color: #333; font-weight: 500; transform: rotate(-45deg); transform-origin: bottom left; white-space: nowrap;">11:59 PM</div>`;
         patternHTML += '</div>';
         
         // Pattern bar
