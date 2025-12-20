@@ -158,6 +158,47 @@
             opacity: 0.9;
         }
 
+        /* Debug overlay */
+        #debugOverlay {
+            position: fixed;
+            bottom: 12px;
+            right: 12px;
+            width: 320px;
+            max-height: 240px;
+            padding: 10px;
+            background: rgba(0,0,0,0.8);
+            color: #e5e7eb;
+            font-size: 11px;
+            line-height: 1.3;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+            z-index: 9999;
+            display: none;
+        }
+        #debugOverlay header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        #debugOverlay button {
+            background: #fbbf24;
+            color: #111827;
+            border: none;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        #debugOverlay pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 6px 0 0 0;
+            max-height: 180px;
+            overflow: auto;
+        }
+
         #citiesGrid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -818,8 +859,24 @@
     <!-- MAIN APPLICATION (Original V5.2 UI) -->
     <!-- ============================================================ -->
     
-    <button class="back-button" id="backButton" onclick="showCitiesView()">&larr; Back to Cities</button>
-    
+    <button class="back-button" id="backButton" onclick="showMainView()">← Back to cities</button>
+
+    <script>
+    // Debug overlay
+    const debugOverlay = document.createElement('div');
+    debugOverlay.id = 'debugOverlay';
+    debugOverlay.innerHTML = `<header><div>Debug</div><button onclick="document.getElementById('debugOverlay').style.display='none'">Close</button></header><pre id="debugLog"></pre>`;
+    document.body.appendChild(debugOverlay);
+
+    function logDebug(msg) {
+        const el = document.getElementById('debugOverlay');
+        const logEl = document.getElementById('debugLog');
+        if (!el || !logEl) return;
+        el.style.display = 'block';
+        logEl.textContent = `${new Date().toISOString()}\n${msg}`;
+    }
+    </script>
+
     <div class="container">
         <div class="header">
             <h1>Helios</h1>
