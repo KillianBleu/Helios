@@ -198,7 +198,7 @@
             max-height: 180px;
             overflow: auto;
         }
-
+                
         #citiesGrid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -867,6 +867,8 @@
     debugOverlay.id = 'debugOverlay';
     debugOverlay.innerHTML = `<header><div>Debug</div><button onclick="document.getElementById('debugOverlay').style.display='none'">Close</button></header><pre id="debugLog"></pre>`;
     document.body.appendChild(debugOverlay);
+    const DEBUG_ON = true; // set true to always show overlay
+    if (DEBUG_ON) debugOverlay.style.display = 'block';
 
     function logDebug(msg) {
         const el = document.getElementById('debugOverlay');
@@ -1539,6 +1541,7 @@ async function fetchScoresFromWorker(lat, lon, cityName, timezone, retryCount = 
                 reauthTriggered = true;
                 forceReauth('Session expired. Please log in again.');
             }
+            logDebug(`401 for ${cityName}; stored=${!!stored}, retryCount=${retryCount}`);
             return null;
         }
         
@@ -1550,10 +1553,12 @@ async function fetchScoresFromWorker(lat, lon, cityName, timezone, retryCount = 
         
         const data = await response.json();
         console.log('✅ Received scores:', data);
+        logDebug(`OK ${cityName}: ${response.status}\n${JSON.stringify(data).slice(0,400)}`);
         return data;
         
     } catch (error) {
         console.error('❌ Error:', error);
+        logDebug(`Error ${cityName}: ${error.message}`);
         
         if (error.message.includes('No token')) {
             return null;
