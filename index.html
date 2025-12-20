@@ -1596,11 +1596,41 @@ async function showCityDetail(city) {
     document.getElementById('backButton').style.display = 'block';
     
     document.getElementById('detailCityName').textContent = city.name;
-    document.getElementById('detailHelioScore').textContent = scores.currentScore > 0 ? scores.currentScore.toFixed(1) : 'N/A';
-    document.getElementById('detailScoreLabel').textContent = getScoreLabel(scores.currentScore);
+    
+    // Build the score display with gradient circle and label
+    const detailHeader = document.querySelector('.detail-header');
+    const scoreClass = scores.currentScore > 0 ? getScoreColorClass(scores.currentScore) : 'night';
+    const colorMap = {
+        'excellent': 'linear-gradient(135deg, #FFD700 0%, #FF8C00 100%)',
+        'great': 'linear-gradient(135deg, #FFA500 0%, #FF7F00 100%)',
+        'good': 'linear-gradient(135deg, #FF6B9D 0%, #C44569 100%)',
+        'moderate': 'linear-gradient(135deg, #B565D8 0%, #8B3DFF 100%)',
+        'fair': 'linear-gradient(135deg, #5F9DF7 0%, #3B5998 100%)',
+        'poor': 'linear-gradient(135deg, #4A5568 0%, #2D3748 100%)',
+        'verypoor': 'linear-gradient(135deg, #5A4A42 0%, #3E2723 100%)',
+        'dismal': 'linear-gradient(135deg, #2C3E50 0%, #1A252F 100%)',
+        'night': 'linear-gradient(135deg, #1e3a5f 0%, #0f1419 100%)'
+    };
+    
+    // Create score section HTML with label and gradient circle
+    const scoreHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
+            <div style="font-size: 18px; color: #666; font-weight: 500;">Current Helios Score:</div>
+            <div style="width: 100px; height: 100px; border-radius: 50%; background: ${colorMap[scoreClass]}; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <span style="font-size: 42px; font-weight: 700; color: white;">${scores.currentScore > 0 ? scores.currentScore.toFixed(1) : 'N/A'}</span>
+            </div>
+        </div>
+    `;
+    
+    // Insert score HTML and update label
+    const existingScoreDiv = detailHeader.querySelector('.detail-helio-score');
+    const existingLabelDiv = detailHeader.querySelector('.detail-score-label');
+    if (existingScoreDiv && existingLabelDiv) {
+        existingScoreDiv.outerHTML = scoreHTML;
+        existingLabelDiv.textContent = getScoreLabel(scores.currentScore);
+    }
     
     // Add daily average to header
-    const detailHeader = document.querySelector('.detail-header');
     const existingAvg = detailHeader.querySelector('.detail-daily-avg');
     if (existingAvg) existingAvg.remove(); // Remove if already exists
     
@@ -1739,14 +1769,14 @@ async function showCityDetail(city) {
         };
         
         // Time markers above the bar
-        patternHTML += '<div style="position: relative; margin-bottom: 5px; height: 30px;">';
+        patternHTML += '<div style="position: relative; margin-bottom: 8px; height: 25px;">';
         for (const seg of segments) {
             const leftPos = (seg.start / hourly24.length * 100).toFixed(2);
             const timeStr = getLocalTimeFromISO(seg.startTime);
-            patternHTML += `<div style="position: absolute; left: ${leftPos}%; font-size: 11px; color: #333; font-weight: 500; transform: translateX(-50%) rotate(-45deg); transform-origin: bottom left; white-space: nowrap;">${timeStr}</div>`;
+            patternHTML += `<div style="position: absolute; left: ${leftPos}%; bottom: 0; font-size: 11px; color: #333; font-weight: 500; transform: rotate(-45deg); transform-origin: bottom left; white-space: nowrap;">${timeStr}</div>`;
         }
         // Add end time marker at 100% (11:59 PM)
-        patternHTML += `<div style="position: absolute; left: 100%; font-size: 11px; color: #333; font-weight: 500; transform: translateX(-100%) rotate(-45deg); transform-origin: bottom right; white-space: nowrap;">11:59 PM</div>`;
+        patternHTML += `<div style="position: absolute; right: 0; bottom: 0; font-size: 11px; color: #333; font-weight: 500; transform: rotate(-45deg); transform-origin: bottom right; white-space: nowrap;">11:59 PM</div>`;
         patternHTML += '</div>';
         
         // Pattern bar
