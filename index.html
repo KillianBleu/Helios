@@ -967,7 +967,7 @@ async function handleLogin() {
         
         console.log('Login response status:', response.status);
         const data = await response.json();
-        console.log('Login response data:', data);
+        console.log('Login successful for user:', data.username);
         
         if (!response.ok) throw new Error(data.error);
         
@@ -1326,37 +1326,25 @@ let autoRefreshInterval = null;
 
 // FOR TESTING: Use 30 seconds instead of 5 minutes to see it work faster
 // Change back to 300000 (5 minutes) after testing
-const REFRESH_INTERVAL = 30000; // 30 seconds for testing (change to 300000 for 5 minutes)
+const REFRESH_INTERVAL = 300000; // 5 minutes (300,000 milliseconds)
 
 function startAutoRefresh() {
-    console.log('🚀 startAutoRefresh() function called!');
+    console.log('🚀 Auto-refresh enabled (every 5 minutes)');
     
     // Clear any existing interval
     if (autoRefreshInterval) {
-        console.log('⚠️ Clearing existing interval');
         clearInterval(autoRefreshInterval);
     }
     
-    console.log(`⏰ Setting up interval with ${REFRESH_INTERVAL}ms (${REFRESH_INTERVAL/1000} seconds)`);
-    
     // Refresh at the specified interval
     autoRefreshInterval = setInterval(async () => {
-        const now = new Date().toLocaleTimeString();
-        console.log(`🔄 Auto-refreshing weather data at ${now}...`);
+        console.log('🔄 Refreshing weather data...');
         
         // Only refresh if user is logged in and has cities
         if (savedCities.length > 0 && sessionToken && API_TOKEN) {
             await renderCityCards();
-            console.log('✅ Auto-refresh complete');
-        } else {
-            console.log('⚠️ Skipping auto-refresh (no cities or not logged in)');
         }
     }, REFRESH_INTERVAL);
-    
-    const startTime = new Date().toLocaleTimeString();
-    const intervalMinutes = REFRESH_INTERVAL / 60000;
-    console.log(`✅ Auto-refresh started at ${startTime} (updates every ${intervalMinutes} minutes)`);
-    console.log(`📊 Current state: cities=${savedCities.length}, hasToken=${!!sessionToken}, hasAPIToken=${!!API_TOKEN}`);
 }
 
 function stopAutoRefresh() {
