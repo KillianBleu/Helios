@@ -1381,30 +1381,38 @@ window.addEventListener('load', async () => {
 // UTILITY FUNCTIONS
 // ============================================================
 
-// Auto-refresh timer
+// Auto-refresh timer with activity-based throttling
 let autoRefreshInterval = null;
+let lastActivityTs = Date.now();
+const ACTIVE_REFRESH_INTERVAL = 15 * 60 * 1000; // 15 minutes
+const INACTIVE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
-// FOR TESTING: Use 30 seconds instead of 5 minutes to see it work faster
-// Change back to 300000 (5 minutes) after testing
-const REFRESH_INTERVAL = 300000; // 5 minutes (300,000 milliseconds)
+function markUserActive() {
+    lastActivityTs = Date.now();
+    if (!autoRefreshInterval) {
+        startAutoRefresh();
+    }
+}
 
 function startAutoRefresh() {
-    console.log('🚀 Auto-refresh enabled (every 5 minutes)');
+    console.log('🚀 Auto-refresh enabled (every 15 minutes while active)');
     
-    // Clear any existing interval
     if (autoRefreshInterval) {
         clearInterval(autoRefreshInterval);
     }
     
-    // Refresh at the specified interval
     autoRefreshInterval = setInterval(async () => {
-        console.log('🔄 Refreshing weather data...');
-        
-        // Only refresh if user is logged in and has cities
+        const inactiveFor = Date.now() - lastActivityTs;
+        if (inactiveFor > INACTIVE_TIMEOUT) {
+            console.log('🛑 Auto-refresh paused due to inactivity');
+            stopAutoRefresh();
+            return;
+        }
         if (savedCities.length > 0 && sessionToken && API_TOKEN) {
+            console.log('🔄 Refreshing weather data...');
             await renderCityCards();
         }
-    }, REFRESH_INTERVAL);
+    }, ACTIVE_REFRESH_INTERVAL);
 }
 
 function stopAutoRefresh() {
@@ -1414,6 +1422,16 @@ function stopAutoRefresh() {
         console.log('🛑 Auto-refresh stopped');
     }
 }
+
+// Track activity to resume/pause refresh
+['click','keydown','touchstart','pointerdown'].forEach(evt=>{
+    window.addEventListener(evt, markUserActive, { passive: true });
+});
+document.addEventListener('visibilitychange', ()=>{
+    if (document.visibilityState === 'visible') {
+        markUserActive();
+    }
+});
 
 function forceReauth(reason = 'Session expired or token invalid. Please log in again.') {
     console.warn('Force reauth:', reason);
