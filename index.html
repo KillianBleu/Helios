@@ -859,7 +859,7 @@
     <!-- MAIN APPLICATION (Original V5.2 UI) -->
     <!-- ============================================================ -->
     
-    <button class="back-button" id="backButton" onclick="showMainView()">← Back to cities</button>
+    <button class="back-button" id="backButton" onclick="showCitiesView()">← Back to cities</button>
 
     <script>
     // Debug overlay
@@ -867,15 +867,17 @@
     debugOverlay.id = 'debugOverlay';
     debugOverlay.innerHTML = `<header><div>Debug</div><button onclick="document.getElementById('debugOverlay').style.display='none'">Close</button></header><pre id="debugLog"></pre>`;
     document.body.appendChild(debugOverlay);
-    const DEBUG_ON = true; // set true to always show overlay
-    if (DEBUG_ON) debugOverlay.style.display = 'block';
+    const DEBUG_ON = false; // set true to show overlay
+    if (!DEBUG_ON) debugOverlay.style.display = 'none';
 
     function logDebug(msg) {
         const el = document.getElementById('debugOverlay');
         const logEl = document.getElementById('debugLog');
         if (!el || !logEl) return;
-        el.style.display = 'block';
-        logEl.textContent = `${new Date().toISOString()}\n${msg}`;
+        if (DEBUG_ON) {
+            el.style.display = 'block';
+            logEl.textContent = `${new Date().toISOString()}\n${msg}`;
+        }
     }
     </script>
 
