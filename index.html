@@ -1,2083 +1,1005 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Helios - Find Your Brightness</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+/**
+ * Helios Cloudflare Worker - ML-Optimized Brightness Algorithm
+ * Version 5.2 FINAL - PROPRIETARY & CONFIDENTIAL
+ * 
+ * Copyright © 2025 Skyler Mydler / Killian Bleu. All rights reserved.
+ * This code contains proprietary ML-optimized algorithms.
+ * 
+ * CHANGELOG v5.2:
+ * - Fixed critical morning hours bug (date+hour matching)
+ * - User authentication system with session management
+ * - Database-backed city storage (max 6 cities per user)
+ */
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            color: white;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: relative;
-        }
-
-        .header h1 {
-            font-size: 48px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            display: inline-block;
-            position: relative;
-        }
-        
-        .header h1::before {
-            content: '☀️';
-            position: absolute;
-            right: 100%;
-            margin-right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .header p {
-            font-size: 18px;
-            opacity: 0.95;
-        }
-
-        .back-button {
-            display: none;
-            background: white;
-            color: #FFA500;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-        }
-
-        .back-button:hover {
-            transform: translateY(-2px);
-        }
-
-        .search-container {
-            position: relative;
-            margin-bottom: 20px;
-        }
-
-        .search-box {
-            display: flex;
-            background: white;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        }
-
-        #searchInput {
-            flex: 1;
-            padding: 18px 20px;
-            border: none;
-            font-size: 16px;
-            outline: none;
-        }
-
-        #searchBtn {
-            padding: 18px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        #searchBtn:hover {
-            opacity: 0.9;
-        }
-
-        #searchResults {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border-radius: 12px;
-            margin-top: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            max-height: 400px;
-            overflow-y: auto;
-            z-index: 1000;
-        }
-
-        .search-result-item {
-            padding: 15px 20px;
-            cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background 0.2s;
-        }
-
-        .search-result-item:hover {
-            background: #f8f8f8;
-        }
-
-        .search-result-item:last-child {
-            border-bottom: none;
-        }
-
-        .city-details {
-            font-size: 14px;
-            color: #666;
-            margin-top: 4px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: white;
-        }
-
-        .empty-state h2 {
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
-
-        .empty-state p {
-            font-size: 18px;
-            opacity: 0.9;
-        }
-
-        /* Debug overlay */
-        #debugOverlay {
-            position: fixed;
-            bottom: 12px;
-            right: 12px;
-            width: 320px;
-            max-height: 240px;
-            padding: 10px;
-            background: rgba(0,0,0,0.8);
-            color: #e5e7eb;
-            font-size: 11px;
-            line-height: 1.3;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 6px 18px rgba(0,0,0,0.35);
-            z-index: 9999;
-            display: none;
-        }
-        #debugOverlay header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
-        }
-        #debugOverlay button {
-            background: #fbbf24;
-            color: #111827;
-            border: none;
-            border-radius: 6px;
-            padding: 4px 8px;
-            font-size: 11px;
-            cursor: pointer;
-        }
-        #debugOverlay pre {
-            white-space: pre-wrap;
-            word-break: break-word;
-            margin: 6px 0 0 0;
-            max-height: 180px;
-            overflow: auto;
-        }
-                
-        #citiesGrid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
-        }
-
-        .city-card {
-            background: white;
-            border-radius: 20px;
-            padding: 24px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .city-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-        }
-
-        .city-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 15px;
-        }
-
-        .city-info {
-            flex: 1;
-        }
-
-        .city-name {
-            font-size: 22px;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 4px;
-        }
-
-        .city-country {
-            font-size: 13px;
-            color: #666;
-        }
-
-        .score-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .score-label-text {
-            font-size: 12px;
-            color: #666;
-            font-weight: 500;
-            text-align: right;
-            line-height: 1.3;
-        }
-
-        .helio-score-circle {
-            width: 65px;
-            height: 65px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            font-weight: 700;
-            color: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            flex-shrink: 0;
-        }
-
-        .helio-score-circle.excellent { background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%); } /* Bright gold/orange */
-        .helio-score-circle.great { background: linear-gradient(135deg, #FFA500 0%, #FF7F00 100%); } /* Orange */
-        .helio-score-circle.good { background: linear-gradient(135deg, #FF6B9D 0%, #C44569 100%); } /* Pink/rose */
-        .helio-score-circle.moderate { background: linear-gradient(135deg, #B565D8 0%, #8B3DFF 100%); } /* Purple */
-        .helio-score-circle.fair { background: linear-gradient(135deg, #5F9DF7 0%, #3B5998 100%); } /* Blue */
-        .helio-score-circle.poor { background: linear-gradient(135deg, #4A5568 0%, #2D3748 100%); } /* Blue-gray */
-        .helio-score-circle.verypoor { background: linear-gradient(135deg, #5A4A42 0%, #3E2723 100%); } /* Brown */
-        .helio-score-circle.dismal { background: linear-gradient(135deg, #2C3E50 0%, #1A252F 100%); } /* Dark blue-gray */
-        .helio-score-circle.night { background: linear-gradient(135deg, #1e3a5f 0%, #0f1419 100%); } /* Dark blue */
-
-        .city-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .stat {
-            text-align: center;
-            background: #f8f9fa;
-            padding: 12px 8px;
-            border-radius: 8px;
-        }
-
-        .stat-label {
-            font-size: 11px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-            font-weight: 500;
-        }
-
-        .stat-value {
-            font-size: 16px;
-            font-weight: 600;
-            color: #333;
-            line-height: 1.3;
-        }
-
-        .delete-city {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #ff4444;
-            color: white;
-            border: none;
-            font-size: 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0.7;
-            transition: opacity 0.2s;
-        }
-
-        .delete-city:hover {
-            opacity: 1;
-        }
-
-        #detailView {
-            display: none;
-        }
-
-        .detail-header {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            text-align: center;
-            position: relative;
-        }
-
-        .detail-city-name {
-            font-size: 36px;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 15px;
-        }
-
-        .detail-helio-score {
-            font-size: 72px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 10px;
-        }
-
-        .detail-score-label {
-            font-size: 24px;
-            color: #666;
-        }
-
-        .detail-daily-avg {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            text-align: right;
-        }
-
-        .detail-daily-avg-label {
-            font-size: 11px;
-            color: #999;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-        }
-
-        .detail-daily-avg-value {
-            font-size: 20px;
-            font-weight: 700;
-            color: #333;
-        }
-
-        .detail-section {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-
-        .detail-section h2 {
-            font-size: 24px;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 20px;
-        }
-
-        .detail-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-
-        .detail-item {
-            text-align: center;
-        }
-
-        .detail-label {
-            font-size: 14px;
-            color: #999;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-
-        .detail-value {
-            font-size: 24px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .hourly-grid {
-            display: flex;
-            gap: 10px;
-            overflow-x: auto;
-            padding: 10px 0;
-        }
-
-        .hourly-item {
-            min-width: 90px;
-            text-align: center;
-            padding: 15px;
-            background: #f8f8f8;
-            border-radius: 12px;
-            flex-shrink: 0;
-        }
-
-        .hourly-time {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 8px;
-        }
-
-        .hourly-icon {
-            font-size: 32px;
-            margin: 8px 0;
-        }
-
-        .hourly-score {
-            font-size: 18px;
-            font-weight: 700;
-            margin: 8px 0;
-        }
-
-        .hourly-score.excellent { color: #FF8C00; font-weight: 600; } /* Dark orange - readable */
-        .hourly-score.great { color: #FF7F00; font-weight: 600; } /* Orange */
-        .hourly-score.good { color: #C44569; font-weight: 600; } /* Deep pink */
-        .hourly-score.moderate { color: #8B3DFF; font-weight: 600; } /* Purple */
-        .hourly-score.fair { color: #3B5998; font-weight: 600; } /* Blue */
-        .hourly-score.poor { color: #2D3748; font-weight: 600; } /* Dark gray */
-        .hourly-score.verypoor { color: #3E2723; font-weight: 600; } /* Dark brown */
-        .hourly-score.dismal { color: #1A252F; font-weight: 600; } /* Very dark */
-        .hourly-score.night { color: #666; }
-
-        .hourly-temp {
-            font-size: 14px;
-            color: #666;
-        }
-
-        .forecast-list {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .forecast-day {
-            display: grid;
-            grid-template-columns: 120px 80px 1fr;
-            align-items: center;
-            padding: 20px;
-            background: #f8f8f8;
-            border-radius: 12px;
-        }
-
-        .forecast-score {
-            font-size: 24px;
-            font-weight: 700;
-            text-align: center;
-        }
-
-        .forecast-score.excellent { color: #FF8C00; font-weight: 600; }
-        .forecast-score.great { color: #FF7F00; font-weight: 600; }
-        .forecast-score.good { color: #C44569; font-weight: 600; }
-        .forecast-score.moderate { color: #8B3DFF; font-weight: 600; }
-        .forecast-score.fair { color: #3B5998; font-weight: 600; }
-        .forecast-score.poor { color: #2D3748; font-weight: 600; }
-        .forecast-score.verypoor { color: #3E2723; font-weight: 600; }
-        .forecast-score.dismal { color: #1A252F; font-weight: 600; }
-
-        .hourly-item.daytime {
-            background: rgba(255, 200, 0, 0.25) !important; /* More visible yellow */
-        }
-
-        .hourly-item.nighttime {
-            background: rgba(30, 58, 95, 0.25) !important; /* More visible blue */
-        }
-
-        .pattern-bar {
-            display: flex;
-            height: 50px;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin: 15px 0;
-        }
-
-        .pattern-segment {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .pattern-legend {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-            font-size: 12px;
-            margin-top: 10px;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-        }
-
-        footer {
-            text-align: center;
-            margin-top: 20px;
-            padding: 20px;
-            color: white;
-            opacity: 0.8;
-        }
-
-        /* ============================================================ */
-        /* AUTHENTICATION OVERLAY STYLES */
-        /* ============================================================ */
-        
-        #authOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        #authOverlay.hidden {
-            display: none !important;
-        }
-
-        .auth-box {
-            background: white;
-            border-radius: 24px;
-            padding: 40px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .auth-box h1 {
-            font-size: 36px;
-            color: #FFA500;
-            margin-bottom: 8px;
-            text-align: center;
-        }
-
-        .auth-box .subtitle {
-            color: #666;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 14px;
-        }
-
-        .auth-form-group {
-            margin-bottom: 20px;
-        }
-
-        .auth-form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .auth-form-group input {
-            width: 100%;
-            padding: 14px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            font-size: 16px;
-            transition: border-color 0.2s;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        }
-
-        .auth-form-group input:focus {
-            outline: none;
-            border-color: #FFA500;
-        }
-
-        .auth-form-group small {
-            display: block;
-            margin-top: 4px;
-            color: #999;
-            font-size: 12px;
-        }
-
-        .btn-auth {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-weight: 600;
-            font-size: 16px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        }
-
-        .btn-auth:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
-        }
-
-        .btn-auth:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .auth-switch {
-            text-align: center;
-            margin-top: 20px;
-            color: #666;
-            font-size: 14px;
-        }
-
-        .auth-switch a {
-            color: #FFA500;
-            text-decoration: none;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .auth-switch a:hover {
-            text-decoration: underline;
-        }
-
-        .auth-error {
-            background: #ffe0e0;
-            color: #cc0000;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .auth-error.show {
-            display: block;
-        }
-
-        .user-bar {
-            display: none;
-            justify-content: center;  /* Center the content */
-            align-items: center;
-            background: rgba(255,255,255,0.2);
-            padding: 12px 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            color: white;
-            font-weight: 500;
-            position: relative;  /* For absolute positioning of logout button */
-        }
-
-        .user-bar.visible {
-            display: flex;
-        }
-
-        .btn-logout {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity 0.2s;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            position: absolute;  /* Position on the right */
-            right: 20px;
-        }
-
-        .btn-logout:hover {
-            opacity: 0.9;
-        }
-
-        .city-limit-notice {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 12px 20px;
-            border-radius: 12px;
-            margin-bottom: 40px;
-            margin-top: 20px;
-            color: white;
-            font-size: 14px;
-            text-align: center;
-            display: none;
-        }
-
-        .city-limit-notice.visible {
-            display: block;
-        }
-    </style>
-</head>
-<body>
-    <!-- ============================================================ -->
-    <!-- AUTHENTICATION OVERLAY -->
-    <!-- ============================================================ -->
-    <div id="authOverlay">
-        <div class="auth-box">
-            <!-- Login Form -->
-            <div id="loginForm">
-                <h1>☀️ Helios</h1>
-                <p class="subtitle">Your Anti-Gloom Weather App</p>
-                
-                <div id="loginError" class="auth-error"></div>
-                
-                <form id="loginFormElement">
-                    <div class="auth-form-group">
-                        <label for="loginUsername">Username</label>
-                        <input 
-                            type="text" 
-                            id="loginUsername" 
-                            required 
-                            autocomplete="username"
-                        >
-                    </div>
-                    <div class="auth-form-group">
-                        <label for="loginPassword">Password</label>
-                        <input 
-                            type="password" 
-                            id="loginPassword" 
-                            required 
-                            autocomplete="current-password"
-                        >
-                    </div>
-                    <div class="auth-form-group">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal;">
-                            <input type="checkbox" id="rememberMe" checked style="width: auto; margin: 0;">
-                            <span>Remember me</span>
-                        </label>
-                    </div>
-                    <button type="submit" class="btn-auth" id="loginBtn">Log In</button>
-                </form>
-                
-                <div class="auth-switch">
-                    Don't have an account? <a href="#" id="showSignupLink">Sign up</a>
-                </div>
-                
-                <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #999;">
-                    © 2025 Helios. All rights reserved.
-                </div>
-            </div>
-
-            <!-- Signup Form -->
-            <div id="signupForm" style="display: none;">
-                <h1>☀️ Helios</h1>
-                <p class="subtitle">Create your account to start tracking sunshine</p>
-                
-                <div id="signupError" class="auth-error"></div>
-                
-                <form id="signupFormElement">
-                    <div class="auth-form-group">
-                        <label for="signupUsername">Username</label>
-                        <input 
-                            type="text" 
-                            id="signupUsername" 
-                            required 
-                            minlength="3" 
-                            maxlength="20" 
-                            autocomplete="off"
-                        >
-                        <small>3-20 characters (case-insensitive)</small>
-                    </div>
-                    <div class="auth-form-group">
-                        <label for="signupPassword">Password</label>
-                        <input 
-                            type="password" 
-                            id="signupPassword" 
-                            required 
-                            minlength="6" 
-                            autocomplete="new-password"
-                        >
-                        <small>At least 6 characters</small>
-                    </div>
-                    <div class="auth-form-group">
-                        <label for="signupPasswordConfirm">Confirm Password</label>
-                        <input 
-                            type="password" 
-                            id="signupPasswordConfirm" 
-                            required 
-                            minlength="6" 
-                            autocomplete="new-password"
-                        >
-                    </div>
-                    <button type="submit" class="btn-auth" id="signupBtn">Create Account</button>
-                </form>
-                
-                <div class="auth-switch">
-                    Already have an account? <a href="#" id="showLoginLink">Log in</a>
-                </div>
-                
-                <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #999;">
-                    © 2025 Helios. All rights reserved.
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- MAIN APPLICATION (Original V5.2 UI) -->
-    <!-- ============================================================ -->
-    
-    <button class="back-button" id="backButton" onclick="showCitiesView()">← Back to cities</button>
-
-    <script>
-    // Debug overlay
-    const debugOverlay = document.createElement('div');
-    debugOverlay.id = 'debugOverlay';
-    debugOverlay.innerHTML = `<header><div>Debug</div><button onclick="document.getElementById('debugOverlay').style.display='none'">Close</button></header><pre id="debugLog"></pre>`;
-    document.body.appendChild(debugOverlay);
-    const DEBUG_ON = false; // set true to show overlay
-    if (!DEBUG_ON) debugOverlay.style.display = 'none';
-
-    function logDebug(msg) {
-        const el = document.getElementById('debugOverlay');
-        const logEl = document.getElementById('debugLog');
-        if (!el || !logEl) return;
-        if (DEBUG_ON) {
-            el.style.display = 'block';
-            logEl.textContent = `${new Date().toISOString()}\n${msg}`;
-        }
-    }
-    </script>
-
-    <div class="container">
-        <div class="header">
-            <h1>Helios</h1>
-            <p>Find Your Brightness</p>
-        </div>
-
-        <!-- User Bar (shown when logged in) -->
-        <div class="user-bar" id="userBar">
-            <span>Welcome, <span id="displayUsername"></span>!</span>
-            <button class="btn-logout" id="logoutBtn">Logout</button>
-        </div>
-
-        <div id="citiesView">
-            <div class="search-container">
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="Search for a city...">
-                    <button id="searchBtn">Search</button>
-                </div>
-                <div id="searchResults"></div>
-            </div>
-
-            <div class="empty-state" id="emptyState">
-                <h2>Welcome to Helios</h2>
-                <p>Search for a city to add it to your dashboard</p>
-            </div>
-
-            <div id="citiesGrid"></div>
-        </div>
-
-        <div id="detailView">
-            <div class="detail-header">
-                <div class="detail-city-name" id="detailCityName"></div>
-                <div class="detail-helio-score" id="detailHelioScore"></div>
-                <div class="detail-score-label" id="detailScoreLabel"></div>
-            </div>
-
-            <div class="detail-section">
-                <h2>Current Conditions</h2>
-                <div class="detail-grid"></div>
-            </div>
-
-            <div class="detail-section">
-                <!-- Sunshine pattern will be inserted here -->
-            </div>
-
-            <div class="detail-section">
-                <!-- Hourly forecast will be inserted here -->
-            </div>
-
-            <div class="detail-section">
-                <!-- 7-day forecast will be inserted here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- City Limit Notice (bottom) -->
-    <div class="container">
-        <div class="city-limit-notice" id="cityLimitNotice">
-            💡 You can save up to 6 cities to your dashboard
-        </div>
-    </div>
-
-    <footer>
-        &copy; 2025 Helios Weather App. All rights reserved.
-    </footer>
-
-    <script>
 // ============================================================
 // CONFIGURATION
 // ============================================================
 
-const WORKER_URL = 'https://helios.skyler-mydler.workers.dev';
-let API_TOKEN = localStorage.getItem('heliosApiToken') || '';
+// Authentication token for ML algorithm access
+const VALID_TOKENS = [
+  'g4902tt2t02t2049t2g0235aegoebegg',  // Replace with your actual ML token
+  // Add more tokens as needed for different users/apps
+];
 
-// Authentication state
-let sessionToken = null;
-let currentUser = null;
-let savedCities = []; // Will be loaded from server after login
-let reauthTriggered = false; // Prevent repeated reauth prompts
+// Session duration for user authentication (62 days)
+const SESSION_DURATION_DAYS = 62;
+
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
 
 // ============================================================
-// AUTHENTICATION SYSTEM
+// SUNCALC LIBRARY (Embedded for solar calculations)
 // ============================================================
 
-// Auth UI Functions
-function showLoginForm() {
-    console.log('showLoginForm called');
-    document.getElementById('loginForm').style.display = 'block';
-    document.getElementById('signupForm').style.display = 'none';
-    document.getElementById('loginError').classList.remove('show');
-    document.getElementById('loginError').textContent = '';
-}
-
-function showSignupForm() {
-    console.log('showSignupForm called');
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('signupForm').style.display = 'block';
-    document.getElementById('signupError').classList.remove('show');
-    document.getElementById('signupError').textContent = '';
-    // Clear form to prevent autofill security issue
-    document.getElementById('signupUsername').value = '';
-    document.getElementById('signupPassword').value = '';
-    document.getElementById('signupPasswordConfirm').value = '';
-}
-
-function hideAuthOverlay() {
-    document.getElementById('authOverlay').classList.add('hidden');
-    document.getElementById('userBar').classList.add('visible');
-    document.getElementById('cityLimitNotice').classList.add('visible');
-}
-
-function showAuthOverlay() {
-    document.getElementById('authOverlay').classList.remove('hidden');
-    document.getElementById('userBar').classList.remove('visible');
-    document.getElementById('cityLimitNotice').classList.remove('visible');
-}
-
-// API Functions
-async function handleLogin() {
-    console.log('handleLogin called');
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const remember = document.getElementById('rememberMe').checked;
-    const errorDiv = document.getElementById('loginError');
-    const btn = document.getElementById('loginBtn');
+const SunCalc = {
+  getPosition: function(date, lat, lng) {
+    const rad = Math.PI / 180;
+    const dayMs = 1000 * 60 * 60 * 24;
+    const J1970 = 2440588;
+    const J2000 = 2451545;
     
-    console.log('Login attempt:', { username, hasPassword: !!password, remember });
+    const toJulian = (date) => date.valueOf() / dayMs - 0.5 + J1970;
+    const toDays = (date) => toJulian(date) - J2000;
     
-    if (!username || !password) {
-        errorDiv.textContent = 'Please enter username and password';
-        errorDiv.classList.add('show');
-        return;
+    const e = rad * 23.4397;
+    const lw = rad * -lng;
+    const phi = rad * lat;
+    const d = toDays(date);
+    const M = rad * (357.5291 + 0.98560028 * d);
+    const C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+    const P = rad * 102.9372;
+    const L = M + C + P + Math.PI;
+    const dec = Math.asin(Math.sin(L) * Math.sin(e));
+    const RA = Math.atan2(Math.sin(L) * Math.cos(e), Math.cos(L));
+    const theta = rad * (280.1600 + 360.9856235 * d) - lw;
+    const H = theta - RA;
+    const altitude = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H));
+    const azimuth = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(dec) * Math.cos(phi));
+    
+    return { altitude, azimuth };
+  }
+};
+
+// ============================================================
+// ML-OPTIMIZED ALGORITHM (v5.0 - PROPRIETARY)
+// ============================================================
+
+function getCloudBrightnessFactor(weatherCode) {
+  const factors = {
+    0: 1.16,   // Clear - ML optimized
+    1: 1.14,   // Mainly clear - ML optimized
+    2: 0.66,   // Partly cloudy - ML optimized
+    3: 1.24,   // Overcast - ML optimized (+82%)
+    45: 0.55,  // Fog
+    48: 0.50,  // Rime fog
+    51: 0.75,  // Light drizzle
+    53: 0.70,  // Moderate drizzle
+    55: 0.65,  // Dense drizzle
+    61: 0.60,  // Slight rain
+    63: 0.60,  // Moderate rain
+    65: 0.50,  // Heavy rain
+    71: 0.80,  // Slight snow
+    73: 0.70,  // Moderate snow
+    75: 0.60,  // Heavy snow
+    77: 0.70,  // Snow grains
+    80: 0.75,  // Rain showers
+    81: 0.60,  // Heavy showers
+    82: 0.45,  // Violent showers
+    85: 0.75,  // Slight snow showers
+    86: 0.60,  // Heavy snow showers
+    95: 0.35,  // Thunderstorm
+    96: 0.35,  // Thunderstorm + hail
+    99: 0.35   // Severe storm
+  };
+  return factors[weatherCode] || 0.80;
+}
+
+function getPrecipitationFactor(weatherCode) {
+  const factors = {
+    0: 1.00, 1: 1.00, 2: 1.00, 3: 1.00, 45: 1.00, 48: 1.00,
+    51: 0.90, 53: 0.80, 55: 0.70, 61: 0.85, 63: 0.70, 65: 0.55,
+    71: 0.90, 73: 0.80, 75: 0.70, 77: 0.85, 80: 0.85, 81: 0.65,
+    82: 0.50, 85: 0.85, 86: 0.70, 95: 0.45, 96: 0.45, 99: 0.45
+  };
+  return factors[weatherCode] || 1.00;
+}
+
+function getClarityFactor(weatherCode) {
+  const factors = {
+    0: 1.00, 1: 1.00, 2: 0.95, 3: 0.80, 45: 0.55, 48: 0.50,
+    51: 0.90, 53: 0.85, 55: 0.85, 61: 0.85, 63: 0.80, 65: 0.70,
+    71: 0.90, 73: 0.85, 75: 0.75, 77: 0.85, 80: 0.85, 81: 0.75,
+    82: 0.60, 85: 0.85, 86: 0.75, 95: 0.65, 96: 0.65, 99: 0.65
+  };
+  return factors[weatherCode] || 1.00;
+}
+
+function getCloudCoverageFactor(cloudCover) {
+  if (cloudCover < 10) return 1.00;
+  if (cloudCover < 25) return 1.00;  // ML optimized
+  if (cloudCover < 50) return 0.92;  // ML optimized
+  if (cloudCover < 90) return 0.60;  // softened penalty for overcast
+  return 0.58;                       // dense overcast cap
+}
+
+function calculateBrightnessScore(weatherCode, cloudCover, lat, lon, timestamp) {
+  const sunPosition = SunCalc.getPosition(timestamp, lat, lon);
+  const solarElevationDegrees = sunPosition.altitude * (180 / Math.PI);
+  
+  if (solarElevationDegrees <= 0) return 0;
+  
+  // Solar Elevation Factor
+  let SEF;
+  if (solarElevationDegrees < 2) {
+    SEF = 0.5 + (solarElevationDegrees / 2) * 0.25;
+  } else if (solarElevationDegrees < 8) {
+    SEF = 0.75 + ((solarElevationDegrees - 2) / 6) * 0.15;
+  } else {
+    const normalizedElev = Math.min((solarElevationDegrees - 8) / 60, 1.0);
+    SEF = 0.90 + (normalizedElev * 0.10);
+  }
+  
+  const SEF_clamped = Math.max(0, Math.min(1, SEF));
+  let SEF_adjusted = SEF_clamped;
+  
+  // Cloud dampening
+  if (cloudCover > 85) {
+    SEF_adjusted = SEF_clamped * 0.78;
+  } else if (cloudCover > 60) {
+    const dampening = 0.85 + ((85 - cloudCover) / 25) * 0.10;
+    SEF_adjusted = SEF_clamped * dampening;
+  }
+  
+  let CCF = getCloudCoverageFactor(cloudCover);
+  const CBF = getCloudBrightnessFactor(weatherCode);
+  const PF = getPrecipitationFactor(weatherCode);
+  const ACF = getClarityFactor(weatherCode);
+  
+  // Error compensation
+  const isThunderstorm = [95, 96, 99].includes(weatherCode);
+  if (SEF_clamped > 0.7 && cloudCover > 60 && !isThunderstorm) {
+    CCF = Math.min(1.0, CCF + 0.15);
+  }
+  
+  const BrightnessRaw = SEF_adjusted * (
+    0.40 * CCF + 0.30 * CBF + 0.15 * PF + 0.15 * ACF
+  );
+  
+  let BrightnessRaw_clamped = Math.max(0, Math.min(1, BrightnessRaw));
+  
+  // Intelligent boost
+  const needsBoost = (
+    (SEF_adjusted > 0.75 && weatherCode === 3 && cloudCover > 75) ||
+    (SEF_adjusted > 0.70 && weatherCode === 2 && cloudCover > 60)
+  );
+  
+  if (needsBoost) {
+    const boostAmount = SEF_adjusted > 0.80 ? 0.12 : 0.08;
+    BrightnessRaw_clamped = Math.min(1.0, BrightnessRaw_clamped + boostAmount);
+  }
+
+  // Overcast-but-bright daytime bump (non-precipitating thick clouds)
+  const precipCodes = new Set([51,53,55,61,63,65,71,73,75,77,80,81,82,85,86,95,96,99]);
+  if (SEF_adjusted > 0.60 && cloudCover >= 80 && !precipCodes.has(weatherCode)) {
+    BrightnessRaw_clamped = Math.min(1.0, BrightnessRaw_clamped + 0.10);
+  }
+  
+  const HelioScore = BrightnessRaw_clamped * 5.0;
+  return Math.max(0, Math.min(5, HelioScore));
+}
+
+// ============================================================
+// WEATHER API INTEGRATION
+// ============================================================
+
+// Simple in-memory cache to avoid hammering weather APIs and hitting rate limits
+// Cache stores current/hourly (30m) and daily (6h)
+const weatherCache = new Map(); // key: `${lat},${lon},${tz}` -> { tsCurrent, tsDaily, data }
+const TTL_CURRENT_MS = 30 * 60 * 1000; // 30 minutes
+const TTL_DAILY_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+// Fallback provider: met.no (hourly + current; lightweight daily aggregates)
+async function fetchFallbackMetNo(lat, lon, tz) {
+  const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat}&lon=${lon}`;
+  const resp = await fetch(url, { headers: { 'User-Agent': 'HeliosApp/1.0' } });
+  if (!resp.ok) {
+    const txt = await resp.text().catch(() => '');
+    throw new Error(`Fallback weather error: ${resp.status} ${resp.statusText} body=${txt.slice(0,400)}`);
+  }
+  const data = await resp.json();
+  const timeseries = data.properties?.timeseries || [];
+  if (!timeseries.length) throw new Error('Fallback weather missing timeseries');
+
+  const mapSymbol = (s) => {
+    if (!s) return 0;
+    if (s.includes('thunder')) return 95;
+    if (s.includes('rain')) return 61;
+    if (s.includes('snow')) return 71;
+    if (s.includes('sleet')) return 75;
+    if (s.includes('fog')) return 45;
+    if (s.includes('cloudy')) return 3;
+    if (s.includes('partly')) return 2;
+    if (s.includes('fair')) return 1;
+    return 0;
+  };
+
+  const hourly = { time: [], weather_code: [], cloud_cover: [], temperature_2m: [] };
+  const dailyAgg = new Map(); // date -> { min, max, code }
+
+  timeseries.forEach(ts => {
+    const t = ts.time;
+    const details = ts.data?.instant?.details || {};
+    const symbol = ts.data?.next_1_hours?.summary?.symbol_code || ts.data?.next_6_hours?.summary?.symbol_code || '';
+    const weatherCode = mapSymbol(symbol);
+    const cloud = details.cloud_area_fraction ?? null;
+    const temp = details.air_temperature ?? null;
+
+    hourly.time.push(t);
+    hourly.weather_code.push(weatherCode);
+    hourly.cloud_cover.push(cloud);
+    hourly.temperature_2m.push(temp);
+
+    const date = t.slice(0,10);
+    const agg = dailyAgg.get(date) || { min: temp, max: temp, code: weatherCode };
+    agg.min = (agg.min == null || temp < agg.min) ? temp : agg.min;
+    agg.max = (agg.max == null || temp > agg.max) ? temp : agg.max;
+    // keep first code of day
+    dailyAgg.set(date, agg);
+  });
+
+  const dailyDates = Array.from(dailyAgg.keys()).sort();
+  const daily = {
+    sunrise: dailyDates.map(() => null),
+    sunset: dailyDates.map(() => null),
+    weather_code: dailyDates.map(d => dailyAgg.get(d).code ?? null),
+    temperature_2m_max: dailyDates.map(d => dailyAgg.get(d).max ?? null),
+    temperature_2m_min: dailyDates.map(d => dailyAgg.get(d).min ?? null),
+    daylight_duration: dailyDates.map(() => null)
+  };
+
+  // Current from first element
+  const first = timeseries[0];
+  const firstDetails = first.data?.instant?.details || {};
+  const firstSymbol = first.data?.next_1_hours?.summary?.symbol_code || first.data?.next_6_hours?.summary?.symbol_code || '';
+  const currentCode = mapSymbol(firstSymbol);
+  const currentCloud = firstDetails.cloud_area_fraction ?? null;
+
+  return {
+    current: {
+      weather_code: currentCode,
+      cloud_cover: currentCloud,
+      temperature_2m: firstDetails.air_temperature ?? null
+    },
+    hourly,
+    daily,
+    timezone: tz || 'auto'
+  };
+}
+
+async function fetchOpenMeteo(lat, lon, tz, includeDaily=true) {
+  const dailyParams = includeDaily ? '&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,daylight_duration&forecast_days=7' : '';
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code,cloud_cover,temperature_2m&hourly=weather_code,cloud_cover,temperature_2m${dailyParams}&timezone=${tz || 'auto'}`;
+  const resp = await fetch(url);
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '');
+    throw new Error(`Weather API error: ${resp.status} ${resp.statusText} url=${url} body=${text.slice(0,400)}`);
+  }
+  return resp.json();
+}
+
+async function fetchWeatherData(lat, lon, timezone) {
+  const tz = timezone || 'auto';
+  const key = `${lat},${lon},${tz}`;
+  const now = Date.now();
+  const cached = weatherCache.get(key);
+  const currentFresh = cached && (now - cached.tsCurrent) < TTL_CURRENT_MS;
+  const dailyFresh = cached && (now - cached.tsDaily) < TTL_DAILY_MS;
+
+  // If both fresh, return cached
+  if (currentFresh && dailyFresh) {
+    return cached.data;
+  }
+
+  try {
+    // If daily is fresh but current is stale, try current-only fetch to reduce load
+    if (!currentFresh && dailyFresh) {
+      const fresh = await fetchOpenMeteo(lat, lon, tz, false);
+      const merged = {
+        ...cached.data,
+        current: fresh.current || cached.data.current,
+        hourly: fresh.hourly || cached.data.hourly,
+      };
+      weatherCache.set(key, { tsCurrent: now, tsDaily: cached.tsDaily, data: merged });
+      return merged;
     }
 
-    btn.disabled = true;
-    btn.textContent = 'Logging in...';
-    errorDiv.classList.remove('show');
-    
+    // Otherwise fetch full (current+hourly+daily)
+    const data = await fetchOpenMeteo(lat, lon, tz, true);
+    weatherCache.set(key, { tsCurrent: now, tsDaily: now, data });
+    return data;
+  } catch (err) {
+    console.error('Open-Meteo error:', err.message);
+    // Fallback to met.no if open-meteo fails
     try {
-        console.log('Sending login request to:', `${WORKER_URL}/auth/login`);
-        const response = await fetch(`${WORKER_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+      const fb = await fetchFallbackMetNo(lat, lon, tz);
+      const merged = cached ? {
+        ...cached.data,
+        current: fb.current,
+        hourly: fb.hourly,
+        daily: cached.data.daily,
+        timezone: fb.timezone
+      } : fb;
+      weatherCache.set(key, { tsCurrent: now, tsDaily: cached?.tsDaily || now, data: merged });
+      return merged;
+    } catch (fallbackErr) {
+      console.error('Fallback provider failed:', fallbackErr.message);
+      if (cached) {
+        console.warn('Serving stale cache after fallback failure');
+        return cached.data;
+      }
+      throw fallbackErr;
+    }
+  }
+}
+
+function calculateScores(weatherData, lat, lon, timezone) {
+  const current = weatherData.current;
+  const hourly = weatherData.hourly;
+  const daily = weatherData.daily;
+  
+  // Comprehensive timezone offset lookup (in hours from UTC)
+  const timezoneOffsets = {
+    // Americas
+    'America/New_York': -5, 'America/Detroit': -5, 'America/Kentucky/Louisville': -5,
+    'America/Chicago': -6, 'America/Denver': -7, 'America/Phoenix': -7,
+    'America/Los_Angeles': -8, 'America/Anchorage': -9, 'America/Juneau': -9,
+    'Pacific/Honolulu': -10, 'America/Adak': -10,
+    'America/Toronto': -5, 'America/Montreal': -5, 'America/Vancouver': -8,
+    'America/Edmonton': -7, 'America/Winnipeg': -6, 'America/Halifax': -4,
+    'America/St_Johns': -3.5,
+    'America/Sao_Paulo': -3, 'America/Argentina/Buenos_Aires': -3,
+    'America/Santiago': -4, 'America/Lima': -5, 'America/Bogota': -5,
+    'America/Mexico_City': -6, 'America/Guatemala': -6, 'America/Managua': -6,
+    'America/Caracas': -4, 'America/La_Paz': -4, 'America/Guayaquil': -5,
+    
+    // Europe
+    'Europe/London': 0, 'Europe/Dublin': 0, 'Europe/Lisbon': 0,
+    'Europe/Paris': 1, 'Europe/Berlin': 1, 'Europe/Rome': 1, 'Europe/Madrid': 1,
+    'Europe/Amsterdam': 1, 'Europe/Brussels': 1, 'Europe/Vienna': 1,
+    'Europe/Stockholm': 1, 'Europe/Oslo': 1, 'Europe/Copenhagen': 1,
+    'Europe/Warsaw': 1, 'Europe/Prague': 1, 'Europe/Budapest': 1,
+    'Europe/Athens': 2, 'Europe/Bucharest': 2, 'Europe/Helsinki': 2,
+    'Europe/Istanbul': 3, 'Europe/Moscow': 3, 'Europe/Kiev': 2,
+    
+    // Africa
+    'Africa/Cairo': 2, 'Africa/Johannesburg': 2, 'Africa/Lagos': 1,
+    'Africa/Nairobi': 3, 'Africa/Casablanca': 1, 'Africa/Algiers': 1,
+    
+    // Middle East
+    'Asia/Dubai': 4, 'Asia/Riyadh': 3, 'Asia/Qatar': 3, 'Asia/Bahrain': 3,
+    'Asia/Kuwait': 3, 'Asia/Jerusalem': 2, 'Asia/Beirut': 2, 'Asia/Baghdad': 3,
+    'Asia/Tehran': 3.5,
+    
+    // Asia
+    'Asia/Kolkata': 5.5, 'Asia/Mumbai': 5.5, 'Asia/Delhi': 5.5,
+    'Asia/Dhaka': 6, 'Asia/Karachi': 5, 'Asia/Kabul': 4.5,
+    'Asia/Kathmandu': 5.75, 'Asia/Colombo': 5.5,
+    'Asia/Bangkok': 7, 'Asia/Jakarta': 7, 'Asia/Ho_Chi_Minh': 7,
+    'Asia/Singapore': 8, 'Asia/Kuala_Lumpur': 8, 'Asia/Manila': 8,
+    'Asia/Hong_Kong': 8, 'Asia/Shanghai': 8, 'Asia/Beijing': 8,
+    'Asia/Taipei': 8, 'Asia/Tokyo': 9, 'Asia/Seoul': 9,
+    'Asia/Yangon': 6.5, 'Asia/Ulaanbaatar': 8,
+    
+    // Australia & Pacific
+    'Australia/Sydney': 11, 'Australia/Melbourne': 11, 'Australia/Canberra': 11,
+    'Australia/Brisbane': 10, 'Australia/Adelaide': 10.5, 'Australia/Darwin': 9.5,
+    'Australia/Perth': 8, 'Australia/Hobart': 11,
+    'Pacific/Auckland': 13, 'Pacific/Fiji': 12, 'Pacific/Guam': 10,
+    'Pacific/Port_Moresby': 10, 'Pacific/Noumea': 11, 'Pacific/Tahiti': -10,
+    'Pacific/Pago_Pago': -11, 'Pacific/Midway': -11,
+    
+    // Additional US Cities
+    'America/Boise': -7, 'America/Indiana/Indianapolis': -5,
+    'America/Kentucky/Monticello': -5, 'America/North_Dakota/Center': -6,
+    
+    // Additional Canadian Cities  
+    'America/Regina': -6, 'America/Saskatoon': -6,
+    
+    // Additional timezones
+    'Atlantic/Reykjavik': 0, 'Atlantic/Azores': -1, 'Atlantic/Cape_Verde': -1,
+    'Indian/Maldives': 5, 'Indian/Mauritius': 4,
+    
+    // US Territories
+    'Pacific/Guam': 10, 'Pacific/Saipan': 10, 'America/Puerto_Rico': -4,
+    'America/Virgin': -4
+  };
+  
+  const tzOffset = timezoneOffsets[timezone] || 0;
+  
+  // Helper: Convert local time string to actual UTC Date
+  function localTimeToRealUTC(localTimeStr) {
+    const match = localTimeStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):?(\d{2})?/);
+    if (!match) {
+      return new Date(localTimeStr);
+    }
+    
+    const [_, year, month, day, hour, minute, second] = match;
+    
+    const localDate = new Date(
+      parseInt(year),
+      parseInt(month) - 1,
+      parseInt(day),
+      parseInt(hour),
+      parseInt(minute),
+      parseInt(second || '0')
+    );
+    
+    const utcTime = localDate.getTime() + (-tzOffset * 3600000);
+    return new Date(utcTime);
+  }
+  
+  // Current score
+  const currentTime = localTimeToRealUTC(current.time);
+  const currentScore = calculateBrightnessScore(
+    current.weather_code,
+    current.cloud_cover,
+    lat,
+    lon,
+    currentTime
+  );
+  
+  // ============================================================
+  // CRITICAL BUGFIX v5.2: Match BOTH date AND hour
+  // ============================================================
+  const currentTimeStr = current.time; // e.g., "2025-12-19T07:00"
+  
+  // Find the index in hourly array that matches current date and hour
+  let startIndex = 0;
+  for (let i = 0; i < hourly.time.length; i++) {
+    // Match both date and hour to avoid morning issues with past data
+    if (hourly.time[i].startsWith(currentTimeStr.substring(0, 13))) { // Match "YYYY-MM-DDTHH"
+      startIndex = i;
+      break;
+    }
+  }
+  
+  // Fallback: if no exact match found (edge case), find first future hour
+  if (startIndex === 0 && hourly.time.length > 0) {
+    const currentDate = new Date(currentTimeStr);
+    for (let i = 0; i < hourly.time.length; i++) {
+      const hourDate = new Date(hourly.time[i]);
+      if (hourDate >= currentDate) {
+        startIndex = i;
+        break;
+      }
+    }
+  }
+  // ============================================================
+  
+  // Process ALL hours available
+  const allHourlyScores = [];
+  for (let i = 0; i < hourly.time.length; i++) {
+    try {
+      const time = localTimeToRealUTC(hourly.time[i]);
+      const score = calculateBrightnessScore(
+        hourly.weather_code[i],
+        hourly.cloud_cover[i],
+        lat,
+        lon,
+        time
+      );
+      
+      allHourlyScores.push({
+        time: hourly.time[i],
+        score: Math.round(score * 10) / 10,
+        temperature: Math.round(hourly.temperature_2m[i] * 9/5 + 32),
+        weatherCode: hourly.weather_code[i],
+        cloudCover: hourly.cloud_cover[i]
+      });
+    } catch (err) {
+      console.error('Error processing hour', i, err);
+    }
+  }
+  
+  const todayHourlyScores = allHourlyScores.slice(0, Math.min(24, allHourlyScores.length));
+  const endIndex = Math.min(startIndex + 24, allHourlyScores.length);
+  const hourlyForecast = allHourlyScores.slice(startIndex, endIndex);
+  
+  const todayDaylightScores = todayHourlyScores.filter(h => h.score > 0);
+  const dailyAvg = todayDaylightScores.length > 0
+    ? todayDaylightScores.reduce((sum, h) => sum + h.score, 0) / todayDaylightScores.length
+    : 0;
+  
+  const daylightHours = daily.daylight_duration ? Math.round(daily.daylight_duration[0] / 3600 * 10) / 10 : 0;
+  
+  // 7-day forecast with peak times
+  const weekForecast = [];
+  for (let i = 0; i < Math.min(7, daily.time.length); i++) {
+    const dayScores = [];
+    const dayScoresWithTime = [];
+    const startHour = i * 24;
+    
+    for (let h = startHour; h < startHour + 24 && h < hourly.time.length; h++) {
+      const time = localTimeToRealUTC(hourly.time[h]);
+      const score = calculateBrightnessScore(
+        hourly.weather_code[h],
+        hourly.cloud_cover[h],
+        lat,
+        lon,
+        time
+      );
+      
+      if (score > 0) {
+        const hourMatch = hourly.time[h].match(/T(\d{2}):/);
+        const localHour = hourMatch ? parseInt(hourMatch[1]) : 12;
+        
+        dayScores.push(score);
+        dayScoresWithTime.push({ 
+          score, 
+          hour: localHour, 
+          weatherCode: hourly.weather_code[h] 
         });
+      }
+    }
+    
+    const avgScore = dayScores.length > 0
+      ? dayScores.reduce((a, b) => a + b, 0) / dayScores.length
+      : 0;
+    
+    let peakScore = 0;
+    let peakHour = 12;
+    if (dayScoresWithTime.length > 0) {
+      const sorted = dayScoresWithTime.sort((a, b) => {
+        if (Math.abs(a.score - b.score) < 0.3) {
+          if (a.weatherCode < b.weatherCode) return -1;
+          if (a.weatherCode > b.weatherCode) return 1;
+        }
+        return b.score - a.score;
+      });
+      peakScore = sorted[0].score;
+      peakHour = sorted[0].hour;
+    }
+    
+    const dayDaylightHours = daily.daylight_duration ? Math.round(daily.daylight_duration[i] / 3600 * 10) / 10 : 0;
+    
+    weekForecast.push({
+      date: daily.time[i],
+      avgScore: Math.round(avgScore * 10) / 10,
+      peakScore: Math.round(peakScore * 10) / 10,
+      peakHour: peakHour,
+      maxTemp: Math.round(daily.temperature_2m_max[i] * 9/5 + 32),
+      minTemp: Math.round(daily.temperature_2m_min[i] * 9/5 + 32),
+      weatherCode: daily.weather_code[i],
+      sunrise: daily.sunrise[i],
+      sunset: daily.sunset[i],
+      daylightHours: dayDaylightHours
+    });
+  }
+  
+  return {
+    currentScore: Math.round(currentScore * 10) / 10,
+    currentTemp: Math.round(current.temperature_2m * 9/5 + 32),
+    currentWeatherCode: current.weather_code,
+    currentCloudCover: current.cloud_cover,
+    dailyAverage: Math.round(dailyAvg * 10) / 10,
+    daylightHours: daylightHours,
+    sunrise: daily.sunrise[0],
+    sunset: daily.sunset[0],
+    todayHourlyScores: todayHourlyScores,
+    hourlyForecast: hourlyForecast,
+    weekForecast: weekForecast,
+    timezone: weatherData.timezone
+  };
+}
+
+// ============================================================
+// ML CALCULATION HANDLER
+// ============================================================
+
+async function handleCalculate(request) {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+  
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Missing authorization' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
+  const token = authHeader.substring(7);
+  if (!VALID_TOKENS.includes(token)) {
+    return new Response(JSON.stringify({ error: 'Invalid token' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
+  try {
+    const body = await request.json();
+    const { latitude, longitude, cityName, timezone } = body;
+    
+    if (!latitude || !longitude) {
+      return new Response(JSON.stringify({ error: 'Missing coordinates' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    const tz = timezone || 'auto';
+    const weatherData = await fetchWeatherData(latitude, longitude, tz);
+    
+    let scores;
+    try {
+      scores = calculateScores(weatherData, latitude, longitude, tz);
+    } catch (calcError) {
+      console.error('Score calculation error:', calcError.message);
+      console.error('City:', cityName, 'TZ:', tz);
+      console.error('Stack:', calcError.stack);
+      return new Response(JSON.stringify({ 
+        error: 'Score calculation failed',
+        message: calcError.message,
+        stack: calcError.stack,
+        timezone: tz,
+        city: cityName
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    return new Response(JSON.stringify({
+      city: cityName || 'Unknown',
+      ...scores
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+    
+  } catch (error) {
+    const isRateLimit = error.message && error.message.includes('429');
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      stack: error.stack,
+      name: error.name,
+      rate_limit: isRateLimit
+    }), {
+      status: isRateLimit ? 429 : 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// ============================================================
+// USER AUTHENTICATION SYSTEM
+// ============================================================
+
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyPassword(password, hash) {
+    const passwordHash = await hashPassword(password);
+    return passwordHash === hash;
+}
+
+function generateToken() {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function getUserFromToken(db, token) {
+    if (!token) return null;
+    
+    const session = await db.prepare(
+        'SELECT user_id, expires_at FROM sessions WHERE token = ?'
+    ).bind(token).first();
+    
+    if (!session) return null;
+    
+    const now = new Date();
+    const expiresAt = new Date(session.expires_at);
+    if (now > expiresAt) {
+        await db.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
+        return null;
+    }
+    
+    const user = await db.prepare(
+        'SELECT id, username FROM users WHERE id = ?'
+    ).bind(session.user_id).first();
+    
+    return user;
+}
+
+async function handleSignup(request, env) {
+    try {
+        const { username, password } = await request.json();
         
-        console.log('Login response status:', response.status);
-        const data = await response.json();
-        console.log('Login successful for user:', data.username);
-        
-        if (!response.ok) throw new Error(data.error);
-        
-        sessionToken = data.token;
-        currentUser = data.username;
-        API_TOKEN = data.mlToken;  // SECURITY: Receive ML token from server, never hardcoded
-        
-        // ALWAYS save to sessionStorage (persists during tab session, cleared on tab close)
-        sessionStorage.setItem('heliosToken', sessionToken);
-        sessionStorage.setItem('heliosUsername', currentUser);
-        sessionStorage.setItem('heliosApiToken', API_TOKEN);
-        
-        // ONLY save to localStorage if "remember me" is checked (persists after tab close)
-        if (remember) {
-            localStorage.setItem('heliosRememberUser', currentUser);
-        } else {
-            localStorage.removeItem('heliosRememberUser');
+        if (!username || !password) {
+            return new Response(JSON.stringify({ error: 'Username and password required' }), {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
         }
         
-        document.getElementById('displayUsername').textContent = currentUser;
+        if (username.length < 3 || username.length > 20) {
+            return new Response(JSON.stringify({ error: 'Username must be 3-20 characters' }), {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
         
-        // Load user cities
-        await loadUserCitiesFromServer();
+        if (password.length < 6) {
+            return new Response(JSON.stringify({ error: 'Password must be at least 6 characters' }), {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
         
-        hideAuthOverlay();
-        renderCityCards();
+        const usernameLower = username.toLowerCase();
         
-        // Start auto-refresh
-        startAutoRefresh();
+        const existing = await env.DB.prepare(
+            'SELECT id FROM users WHERE LOWER(username) = ?'
+        ).bind(usernameLower).first();
+        
+        if (existing) {
+            return new Response(JSON.stringify({ error: 'Username already taken' }), {
+                status: 409,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        
+        const passwordHash = await hashPassword(password);
+        const result = await env.DB.prepare(
+            'INSERT INTO users (username, password_hash) VALUES (?, ?)'
+        ).bind(usernameLower, passwordHash).run();
+        
+        const userId = result.meta.last_row_id;
+        
+        const token = generateToken();
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + SESSION_DURATION_DAYS);
+        
+        await env.DB.prepare(
+            'INSERT INTO sessions (user_id, token, expires_at) VALUES (?, ?, ?)'
+        ).bind(userId, token, expiresAt.toISOString()).run();
+        
+        return new Response(JSON.stringify({ 
+            success: true, 
+            token,
+            username: usernameLower,
+            mlToken: VALID_TOKENS[0]
+        }), {
+            status: 201,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+        
+    } catch (error) {
+        console.error('Signup error:', error);
+        return new Response(JSON.stringify({ error: 'Server error' }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    }
+}
+
+async function handleLogin(request, env) {
+    try {
+        const { username, password } = await request.json();
+        
+        if (!username || !password) {
+            return new Response(JSON.stringify({ error: 'Username and password required' }), {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        
+        const usernameLower = username.toLowerCase();
+        
+        const user = await env.DB.prepare(
+            'SELECT id, username, password_hash FROM users WHERE LOWER(username) = ?'
+        ).bind(usernameLower).first();
+        
+        if (!user) {
+            return new Response(JSON.stringify({ error: 'Invalid username or password' }), {
+                status: 401,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        
+        const valid = await verifyPassword(password, user.password_hash);
+        if (!valid) {
+            return new Response(JSON.stringify({ error: 'Invalid username or password' }), {
+                status: 401,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        
+        const token = generateToken();
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + SESSION_DURATION_DAYS);
+        
+        await env.DB.prepare(
+            'INSERT INTO sessions (user_id, token, expires_at) VALUES (?, ?, ?)'
+        ).bind(user.id, token, expiresAt.toISOString()).run();
+        
+        return new Response(JSON.stringify({ 
+            success: true, 
+            token,
+            username: user.username,
+            mlToken: VALID_TOKENS[0]
+        }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
         
     } catch (error) {
         console.error('Login error:', error);
-        errorDiv.textContent = error.message || 'Login failed';
-        errorDiv.classList.add('show');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Log In';
-        // Clear password field for security
-        document.getElementById('loginPassword').value = '';
+        return new Response(JSON.stringify({ error: 'Server error' }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
     }
 }
 
-async function handleSignup() {
-    const username = document.getElementById('signupUsername').value.trim();
-    const password = document.getElementById('signupPassword').value;
-    const confirmPassword = document.getElementById('signupPasswordConfirm').value;
-    const errorDiv = document.getElementById('signupError');
-    const btn = document.getElementById('signupBtn');
-    
-    if (!username || !password || !confirmPassword) {
-        errorDiv.textContent = 'Please fill in all fields';
-        errorDiv.classList.add('show');
-        return;
-    }
-
-    if (password !== confirmPassword) {
-        errorDiv.textContent = 'Passwords do not match';
-        errorDiv.classList.add('show');
-        return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Creating account...';
-    errorDiv.classList.remove('show');
-    
+async function handleLogout(request, env) {
     try {
-        const response = await fetch(`${WORKER_URL}/auth/signup`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+        const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+        
+        if (token) {
+            await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
+        }
+        
+        return new Response(JSON.stringify({ success: true }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
         
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error);
-        
-        sessionToken = data.token;
-        currentUser = data.username;
-        API_TOKEN = data.mlToken;  // SECURITY: Receive ML token from server, never hardcoded
-        
-        // ALWAYS save to sessionStorage (persists during tab session)
-        sessionStorage.setItem('heliosToken', sessionToken);
-        sessionStorage.setItem('heliosUsername', currentUser);
-        sessionStorage.setItem('heliosApiToken', API_TOKEN);
-        
-        // New accounts get "remember me" by default
-        localStorage.setItem('heliosRememberUser', currentUser);
-        
-        document.getElementById('displayUsername').textContent = currentUser;
-        
-        // New user starts with empty cities
-        savedCities = [];
-        
-        hideAuthOverlay();
-        renderCityCards();
-        
-        // Start auto-refresh
-        startAutoRefresh();
-        
     } catch (error) {
-        errorDiv.textContent = error.message || 'Signup failed';
-        errorDiv.classList.add('show');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Create Account';
+        console.error('Logout error:', error);
+        return new Response(JSON.stringify({ error: 'Server error' }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
     }
 }
 
-async function handleLogout() {
-    // Check if user had "remember me" enabled
-    const hadRememberMe = !!localStorage.getItem('heliosRememberUser');
-    const rememberedUsername = localStorage.getItem('heliosRememberUser');
-    
-    if (sessionToken) {
-        try {
-            await fetch(`${WORKER_URL}/auth/logout`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${sessionToken}` }
-            });
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
-    }
-    
-    sessionToken = null;
-    currentUser = null;
-    savedCities = [];
-    API_TOKEN = '';  // Clear ML token on logout
-    
-    // Stop auto-refresh
-    stopAutoRefresh();
-    
-    // Clear session storage (active session)
-    sessionStorage.removeItem('heliosToken');
-    sessionStorage.removeItem('heliosUsername');
-    sessionStorage.removeItem('heliosApiToken');
-    
-    // Clear localStorage tokens but keep remember me preference
-    localStorage.removeItem('heliosToken');
-    localStorage.removeItem('heliosUsername');
-    localStorage.removeItem('heliosApiToken');
-    
-    // Only clear credentials if "remember me" was NOT checked
-    if (!hadRememberMe) {
-        document.getElementById('loginUsername').value = '';
-        document.getElementById('loginPassword').value = '';
-        localStorage.removeItem('heliosRememberUser');
-    } else {
-        // Restore username for convenience
-        document.getElementById('loginUsername').value = rememberedUsername;
-        document.getElementById('loginPassword').value = '';
-    }
-    
-    document.getElementById('rememberMe').checked = true;  // Reset to default checked
-    
-    showAuthOverlay();
-    showLoginForm();
-    renderCityCards();
-}
-
-async function loadUserCitiesFromServer() {
+async function handleGetCities(request, env) {
     try {
-        const response = await fetch(`${WORKER_URL}/user/cities`, {
-            headers: { 'Authorization': `Bearer ${sessionToken}` }
+        const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+        const user = await getUserFromToken(env.DB, token);
+        
+        if (!user) {
+            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+                status: 401,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        
+        const cities = await env.DB.prepare(
+            'SELECT city_name, latitude, longitude, timezone, admin1, country FROM user_cities WHERE user_id = ? ORDER BY display_order'
+        ).bind(user.id).all();
+        
+        return new Response(JSON.stringify({ 
+            cities: cities.results || []
+        }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
         
-        const data = await response.json();
-        
-        if (!response.ok) {
-            if (response.status === 401) {
-                throw new Error('Session expired');
-            }
-            throw new Error(data.error);
-        }
-        
-        // Load cities
-        savedCities = data.cities.map(city => ({
-            name: city.city_name,
-            latitude: city.latitude,
-            longitude: city.longitude,
-            timezone: city.timezone || 'auto',
-            admin1: city.admin1 || '',
-            country: city.country || ''
-        }));
-        
-        console.log('📍 Loaded cities from server:', savedCities);
-        
     } catch (error) {
-        console.error('Error loading cities:', error);
-        if (error.message === 'Session expired') {
-            handleLogout();
-        }
-        throw error;
+        console.error('Get cities error:', error);
+        return new Response(JSON.stringify({ error: error.message || 'Server error' }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
     }
 }
 
-async function saveCitiesToServer() {
-    if (!sessionToken) return;
-    
-    // Check 6 city limit
-    if (savedCities.length > 6) {
-        alert('Maximum 6 cities allowed. Please delete some cities first.');
-        return false;
-    }
-    
+async function handleSaveCities(request, env) {
     try {
-        const citiesToSave = savedCities.map((city, index) => ({
-            city_name: city.name,
-            latitude: city.latitude,
-            longitude: city.longitude,
-            timezone: city.timezone || 'auto',
-            admin1: city.admin1 || '',
-            country: city.country || ''
-        }));
-
-        const response = await fetch(`${WORKER_URL}/user/cities`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${sessionToken}`
-            },
-            body: JSON.stringify({ cities: citiesToSave })
+        const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+        const user = await getUserFromToken(env.DB, token);
+        
+        if (!user) {
+            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+                status: 401,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        
+        const { cities } = await request.json();
+        
+        if (!Array.isArray(cities)) {
+            return new Response(JSON.stringify({ error: 'Cities must be an array' }), {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        
+        if (cities.length > 6) {
+            return new Response(JSON.stringify({ error: 'Maximum 6 cities allowed' }), {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        
+        await env.DB.prepare('DELETE FROM user_cities WHERE user_id = ?').bind(user.id).run();
+        
+        for (let i = 0; i < cities.length; i++) {
+            const city = cities[i];
+            await env.DB.prepare(
+                'INSERT INTO user_cities (user_id, city_name, latitude, longitude, timezone, admin1, country, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            ).bind(
+                user.id,
+                city.city_name,
+                city.latitude,
+                city.longitude,
+                city.timezone || 'auto',
+                city.admin1 || '',
+                city.country || '',
+                i
+            ).run();
+        }
+        
+        return new Response(JSON.stringify({ success: true }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
         
-        const data = await response.json();
-        
-        if (!response.ok) {
-            if (response.status === 401) {
-                handleLogout();
-                return false;
-            }
-            throw new Error(data.error);
-        }
-        
-        return true;
-        
     } catch (error) {
-        console.error('Error saving cities:', error);
-        alert('Failed to save cities: ' + error.message);
-        return false;
-    }
-}
-
-// Setup auth event listeners
-(function() {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupAuthListeners);
-    } else {
-        setupAuthListeners();
-    }
-    
-    function setupAuthListeners() {
-        console.log('Setting up auth listeners...');
-        
-        const showSignupLink = document.getElementById('showSignupLink');
-        const showLoginLink = document.getElementById('showLoginLink');
-        const loginForm = document.getElementById('loginFormElement');
-        const signupForm = document.getElementById('signupFormElement');
-        const logoutBtn = document.getElementById('logoutBtn');
-        
-        if (showSignupLink) {
-            showSignupLink.addEventListener('click', (e) => {
-                console.log('Signup link clicked');
-                e.preventDefault();
-                showSignupForm();
-            });
-        }
-
-        if (showLoginLink) {
-            showLoginLink.addEventListener('click', (e) => {
-                console.log('Login link clicked');
-                e.preventDefault();
-                showLoginForm();
-            });
-        }
-
-        if (loginForm) {
-            loginForm.addEventListener('submit', (e) => {
-                console.log('Login form submitted');
-                e.preventDefault();
-                handleLogin();
-            });
-        }
-
-        if (signupForm) {
-            signupForm.addEventListener('submit', (e) => {
-                console.log('Signup form submitted');
-                e.preventDefault();
-                handleSignup();
-            });
-        }
-
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', handleLogout);
-        }
-        
-        console.log('Auth listeners setup complete');
-    }
-})();
-
-// Check for existing session on page load
-window.addEventListener('load', async () => {
-    // Priority 1: Check sessionStorage (active session, persists on refresh)
-    let savedToken = sessionStorage.getItem('heliosToken');
-    let savedUsername = sessionStorage.getItem('heliosUsername');
-    let savedApiToken = sessionStorage.getItem('heliosApiToken');
-    
-    // Priority 2: If no session, check localStorage (remember me)
-    if (!savedToken) {
-        savedToken = localStorage.getItem('heliosToken');
-        savedUsername = localStorage.getItem('heliosUsername');
-        savedApiToken = localStorage.getItem('heliosApiToken');
-        
-        // If restoring from localStorage, also save to sessionStorage
-        if (savedToken && savedUsername && savedApiToken) {
-            sessionStorage.setItem('heliosToken', savedToken);
-            sessionStorage.setItem('heliosUsername', savedUsername);
-            sessionStorage.setItem('heliosApiToken', savedApiToken);
-        }
-    }
-    
-    // Pre-fill username if remembered
-    const rememberedUser = localStorage.getItem('heliosRememberUser');
-    if (rememberedUser && !savedToken) {
-        document.getElementById('loginUsername').value = rememberedUser;
-    }
-    
-    if (savedToken && savedUsername && savedApiToken) {
-        sessionToken = savedToken;
-        currentUser = savedUsername;
-        API_TOKEN = savedApiToken;  // Restore ML token
-        document.getElementById('displayUsername').textContent = currentUser;
-        
-        try {
-            await loadUserCitiesFromServer();
-            hideAuthOverlay();
-            renderCityCards();
-            
-            // Start auto-refresh
-            startAutoRefresh();
-        } catch (error) {
-            console.error('Failed to restore session:', error);
-            handleLogout();
-        }
-    } else {
-        // No saved session, show login
-        showAuthOverlay();
-    }
-});
-
-// ============================================================
-// UTILITY FUNCTIONS
-// ============================================================
-
-// Auto-refresh timer with activity-based throttling
-let autoRefreshInterval = null;
-let lastActivityTs = Date.now();
-const ACTIVE_REFRESH_INTERVAL = 15 * 60 * 1000; // 15 minutes
-const INACTIVE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-
-function markUserActive() {
-    lastActivityTs = Date.now();
-    if (!autoRefreshInterval) {
-        startAutoRefresh();
-    }
-}
-
-function startAutoRefresh() {
-    console.log('🚀 Auto-refresh enabled (every 15 minutes while active)');
-    
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-    }
-    
-    autoRefreshInterval = setInterval(async () => {
-        const inactiveFor = Date.now() - lastActivityTs;
-        if (inactiveFor > INACTIVE_TIMEOUT) {
-            console.log('🛑 Auto-refresh paused due to inactivity');
-            stopAutoRefresh();
-            return;
-        }
-        if (savedCities.length > 0 && sessionToken && API_TOKEN) {
-            console.log('🔄 Refreshing weather data...');
-            await renderCityCards();
-        }
-    }, ACTIVE_REFRESH_INTERVAL);
-}
-
-function stopAutoRefresh() {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-        autoRefreshInterval = null;
-        console.log('🛑 Auto-refresh stopped');
-    }
-}
-
-// Track activity to resume/pause refresh
-['click','keydown','touchstart','pointerdown'].forEach(evt=>{
-    window.addEventListener(evt, markUserActive, { passive: true });
-});
-document.addEventListener('visibilitychange', ()=>{
-    if (document.visibilityState === 'visible') {
-        markUserActive();
-    }
-});
-
-function forceReauth(reason = 'Session expired or token invalid. Please log in again.') {
-    console.warn('Force reauth:', reason);
-    API_TOKEN = '';
-    sessionToken = null;
-    currentUser = null;
-    // Clear session storage
-    sessionStorage.removeItem('heliosToken');
-    sessionStorage.removeItem('heliosUsername');
-    sessionStorage.removeItem('heliosApiToken');
-    // Clear persisted tokens (keep remember preference)
-    localStorage.removeItem('heliosToken');
-    localStorage.removeItem('heliosUsername');
-    localStorage.removeItem('heliosApiToken');
-    // Show auth overlay
-    const overlay = document.getElementById('authOverlay');
-    if (overlay) overlay.style.display = 'flex';
-    alert(reason);
-}
-
-function getStoredApiToken() {
-    let t = sessionStorage.getItem('heliosApiToken');
-    if (!t) {
-        t = localStorage.getItem('heliosApiToken');
-        if (t) {
-            sessionStorage.setItem('heliosApiToken', t);
-        }
-    }
-    return t;
-}
-
-// Ensure in-memory API token is synced from storage at load
-API_TOKEN = getStoredApiToken() || API_TOKEN;
-
-function getScoreLabel(score) {
-    if (score >= 4.5) return '☀️ Excellent';
-    if (score >= 3.5) return '🌤️ Great';
-    if (score >= 2.5) return '⛅ Good';
-    if (score >= 1.5) return '🌥️ Moderate';
-    if (score >= 0.5) return '☁️ Fair';
-    if (score > 0) return '🌫️ Poor';
-    return '🌙 Nighttime';
-}
-
-function getScoreColorClass(score) {
-    if (score >= 4.5) return 'excellent';  // 4.5-5.0: Bright yellow
-    if (score >= 4.0) return 'great';      // 4.0-4.4: Yellow
-    if (score >= 3.5) return 'good';       // 3.5-3.9: Light purple/red
-    if (score >= 3.0) return 'moderate';   // 3.0-3.4: Deeper red/purple
-    if (score >= 2.5) return 'fair';       // 2.5-2.9: Light purple blue
-    if (score >= 2.0) return 'poor';       // 2.0-2.4: Deeper purple blue
-    if (score >= 1.5) return 'verypoor';   // 1.5-1.9: Light dark bluish brown
-    return 'dismal';                        // 1.0-1.4: Dark bluish brown
-}
-
-function getWeatherLabel(code) {
-    const labels = {
-        0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
-        45: 'Foggy', 48: 'Rime fog', 51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
-        61: 'Light rain', 63: 'Rain', 65: 'Heavy rain', 71: 'Light snow', 73: 'Snow',
-        75: 'Heavy snow', 77: 'Snow grains', 80: 'Rain showers', 81: 'Heavy showers',
-        82: 'Violent showers', 85: 'Snow showers', 86: 'Heavy snow showers',
-        95: 'Thunderstorm', 96: 'Thunderstorm with hail', 99: 'Severe thunderstorm'
-    };
-    return labels[code] || 'Unknown';
-}
-
-function getWeatherIcon(code) {
-    const icons = {
-        0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 48: '🌫️',
-        51: '🌦️', 53: '🌧️', 55: '🌧️', 61: '🌧️', 63: '🌧️', 65: '🌧️',
-        71: '🌨️', 73: '🌨️', 75: '🌨️', 77: '🌨️', 80: '🌦️', 81: '🌧️',
-        82: '⛈️', 85: '🌨️', 86: '🌨️', 95: '⛈️', 96: '⛈️', 99: '⛈️'
-    };
-    return icons[code] || '🌡️';
-}
-
-// ============================================================
-// CLOUDFLARE WORKER API
-// ============================================================
-
-async function fetchScoresFromWorker(lat, lon, cityName, timezone, retryCount = 0) {
-    const MAX_RETRIES = 2;
-    
-    try {
-        // Ensure we have an API token in memory; reload from storage if missing
-        if (!API_TOKEN) {
-            const storedToken = getStoredApiToken();
-            if (storedToken) {
-                API_TOKEN = storedToken;
-            } else {
-                if (!reauthTriggered) {
-                    reauthTriggered = true;
-                    forceReauth('Session expired. Please log in again.');
-                }
-                return null;
-            }
-        }
-        
-        console.log('Fetching scores for:', cityName, 'Timezone:', timezone);
-        
-        const response = await fetch(`${WORKER_URL}/calculate`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${API_TOKEN}`
-            },
-            body: JSON.stringify({
-                latitude: lat,
-                longitude: lon,
-                cityName: cityName,
-                timezone: timezone
-            })
+        console.error('Save cities error:', error);
+        return new Response(JSON.stringify({ error: error.message || 'Server error' }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
-        
-        if (response.status === 401) {
-            const stored = getStoredApiToken();
-            // If there's a stored token different from the in-memory one, try it once
-            if (stored && stored !== API_TOKEN && retryCount === 0) {
-                console.warn('Detected mismatched API token; reloading from storage and retrying once.');
-                API_TOKEN = stored;
-                return fetchScoresFromWorker(lat, lon, cityName, timezone, retryCount + 1);
-            }
-            // Otherwise force reauth so the user can log back in (mobile-friendly)
-            if (!reauthTriggered) {
-                reauthTriggered = true;
-                forceReauth('Session expired. Please log in again.');
-            }
-            logDebug(`401 for ${cityName}; stored=${!!stored}, retryCount=${retryCount}`);
-            return null;
-        }
-        
-        if (!response.ok) {
-            const errorText = await response.text().catch(() => '');
-            logDebug(`Worker error ${response.status} for ${cityName}\nbody: ${errorText.slice(0,400)}`);
-            throw new Error(`Worker API error: ${response.status} - ${errorText || 'Unknown error'}`);
-        }
-        
-        const data = await response.json();
-        console.log('✅ Received scores:', data);
-        logDebug(`OK ${cityName}: ${response.status}\n${JSON.stringify(data).slice(0,400)}`);
-        return data;
-        
-    } catch (error) {
-        console.error('❌ Error:', error);
-        logDebug(`Error ${cityName}: ${error.message}`);
-        
-        if (error.message.includes('No token')) {
-            return null;
-        }
-        
-        // Retry on network errors
-        if (retryCount < MAX_RETRIES && (error.message.includes('fetch') || error.message.includes('network'))) {
-            console.log(`⚠️ Retrying (${retryCount + 1}/${MAX_RETRIES})...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
-            return fetchScoresFromWorker(lat, lon, cityName, timezone, retryCount + 1);
-        }
-        
-        // Only alert if we've exhausted retries
-        if (retryCount >= MAX_RETRIES) {
-            console.error(`❌ Failed after ${MAX_RETRIES} retries for ${cityName}`);
-            alert(`Unable to load weather data for ${cityName}. The weather service may be temporarily unavailable. Please try refreshing in a few minutes.`);
-        }
-        
-        return null;
     }
 }
 
 // ============================================================
-// CITY RENDERING
+// EXPORT
 // ============================================================
 
-async function renderCityCards() {
-    const citiesGrid = document.getElementById('citiesGrid');
-    const emptyState = document.getElementById('emptyState');
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
     
-    if (savedCities.length === 0) {
-        emptyState.style.display = 'block';
-        citiesGrid.innerHTML = '';
-        return;
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
     }
     
-    emptyState.style.display = 'none';
-    
-    // Keep existing cards, just update them
-    const existingCards = Array.from(citiesGrid.children);
-    
-    for (let index = 0; index < savedCities.length; index++) {
-        const city = savedCities[index];
-        const scores = await fetchScoresFromWorker(city.latitude, city.longitude, city.name, city.timezone);
-        
-        // If token failed and we haven't reauthed yet, trigger reauth once
-        if (!scores && !API_TOKEN && !reauthTriggered) {
-            reauthTriggered = true;
-            forceReauth('Session expired. Please log in again.');
-            return;
-        }
-        
-        const score = scores ? (scores.currentScore || 0) : 0;
-        const daily = scores ? (scores.dailyAverage || 0) : 0;
-        
-        // Get peak time info
-        let peakScore = 'N/A';
-        let peakTime = 'N/A';
-        if (scores && scores.weekForecast && scores.weekForecast[0]) {
-            peakScore = scores.weekForecast[0].peakScore || 'N/A';
-            const peakHour = scores.weekForecast[0].peakHour;
-            if (peakHour !== undefined) {
-                peakTime = peakHour === 0 ? '12 AM' : peakHour === 12 ? '12 PM' : peakHour > 12 ? (peakHour - 12) + ' PM' : peakHour + ' AM';
-            }
-        }
-        
-        // Format sunrise/sunset times
-        function formatTime(isoString) {
-            if (!isoString) return 'N/A';
-            const timeMatch = isoString.match(/T(\d{2}):(\d{2})/);
-            if (timeMatch) {
-                let hour = parseInt(timeMatch[1]);
-                const minute = timeMatch[2];
-                const ampm = hour >= 12 ? 'PM' : 'AM';
-                hour = hour % 12 || 12;
-                return `${hour}:${minute} ${ampm}`;
-            }
-            return 'N/A';
-        }
-        
-        const sunrise = scores ? formatTime(scores.sunrise) : 'N/A';
-        const sunset = scores ? formatTime(scores.sunset) : 'N/A';
-        
-        // Build location string (City, State, Country)
-        let locationStr = city.name;
-        if (city.admin1 || city.country) {
-            const parts = [];
-            if (city.admin1) parts.push(city.admin1);
-            if (city.country) parts.push(city.country);
-            if (parts.length > 0) locationStr += ', ' + parts.join(', ');
-        }
-        
-        const cardHTML = `
-            <div class="city-card" onclick="showCityDetail(savedCities[${index}])" style="position: relative; cursor: pointer;">
-                <button class="delete-city" onclick="event.stopPropagation(); deleteCity(${index})">&times;</button>
-                <div class="city-card-header">
-                    <div class="city-info">
-                        <div class="city-name">${city.name}</div>
-                        <div class="city-country">${city.admin1 && city.country ? city.admin1 + ', ' + city.country : city.admin1 || city.country || ''}</div>
-                    </div>
-                    <div class="score-container">
-                        <div class="score-label-text">Current<br>Helios Score:</div>
-                        <div class="helio-score-circle ${score > 0 ? getScoreColorClass(score) : 'night'}">
-                            ${score > 0 ? score.toFixed(1) : 'N/A'}
-                        </div>
-                    </div>
-                </div>
-                <div class="city-stats">
-                    <div class="stat">
-                        <div class="stat-label">Current</div>
-                        <div class="stat-value">${scores ? getScoreLabel(score) : 'Error'}</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-label">Peak Today</div>
-                        <div class="stat-value">${peakScore}<br><span style="font-size: 13px;">at ${peakTime}</span></div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-label">Sun Times</div>
-                        <div class="stat-value" style="font-size: 13px; line-height: 1.4;">↑ ${sunrise}<br>↓ ${sunset}</div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        if (existingCards[index]) {
-            existingCards[index].outerHTML = cardHTML;
-        } else {
-            citiesGrid.innerHTML += cardHTML;
-        }
+    if (url.pathname === '/auth/signup' && request.method === 'POST') {
+      return handleSignup(request, env);
     }
     
-    // Remove extra cards if cities were deleted
-    while (citiesGrid.children.length > savedCities.length) {
-        citiesGrid.removeChild(citiesGrid.lastChild);
-    }
-}
-
-async function showCityDetail(city) {
-    const scores = await fetchScoresFromWorker(city.latitude, city.longitude, city.name, city.timezone);
-    if (!scores) return;
-    
-    document.getElementById('citiesView').style.display = 'none';
-    document.getElementById('detailView').style.display = 'block';
-    document.getElementById('backButton').style.display = 'block';
-    
-    document.getElementById('detailCityName').textContent = city.name;
-    
-    // Build the score display with gradient circle and label - all centered
-    const detailHeader = document.querySelector('.detail-header');
-    const scoreClass = scores.currentScore > 0 ? getScoreColorClass(scores.currentScore) : 'night';
-    const colorMap = {
-        'excellent': 'linear-gradient(135deg, #FFD700 0%, #FF8C00 100%)',
-        'great': 'linear-gradient(135deg, #FFA500 0%, #FF7F00 100%)',
-        'good': 'linear-gradient(135deg, #FF6B9D 0%, #C44569 100%)',
-        'moderate': 'linear-gradient(135deg, #B565D8 0%, #8B3DFF 100%)',
-        'fair': 'linear-gradient(135deg, #5F9DF7 0%, #3B5998 100%)',
-        'poor': 'linear-gradient(135deg, #4A5568 0%, #2D3748 100%)',
-        'verypoor': 'linear-gradient(135deg, #5A4A42 0%, #3E2723 100%)',
-        'dismal': 'linear-gradient(135deg, #2C3E50 0%, #1A252F 100%)',
-        'night': 'linear-gradient(135deg, #1e3a5f 0%, #0f1419 100%)'
-    };
-    
-    // Create centered score section HTML
-    const scoreHTML = `
-        <div style="text-align: center; margin-bottom: 20px;">
-            <div style="font-size: 18px; color: #666; font-weight: 500; margin-bottom: 15px;">Current Helios Score:</div>
-            <div style="width: 100px; height: 100px; border-radius: 50%; background: ${colorMap[scoreClass]}; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                <span style="font-size: 42px; font-weight: 700; color: white;">${scores.currentScore > 0 ? scores.currentScore.toFixed(1) : 'N/A'}</span>
-            </div>
-        </div>
-        <div style="position: absolute; bottom: 20px; left: 20px;">
-            <div style="font-size: 24px; color: #666;">${getScoreLabel(scores.currentScore)}</div>
-        </div>
-    `;
-    
-    // Insert score HTML
-    const existingScoreDiv = detailHeader.querySelector('.detail-helio-score');
-    const existingLabelDiv = detailHeader.querySelector('.detail-score-label');
-    if (existingScoreDiv && existingLabelDiv) {
-        existingScoreDiv.outerHTML = scoreHTML;
-        existingLabelDiv.remove();
+    if (url.pathname === '/auth/login' && request.method === 'POST') {
+      return handleLogin(request, env);
     }
     
-    // Add daily average to header
-    const existingAvg = detailHeader.querySelector('.detail-daily-avg');
-    if (existingAvg) existingAvg.remove(); // Remove if already exists
-    
-    const dailyAvgHTML = `
-        <div class="detail-daily-avg">
-            <div class="detail-daily-avg-label">Daily Average</div>
-            <div class="detail-daily-avg-value">${scores.dailyAverage > 0 ? scores.dailyAverage.toFixed(1) : 'N/A'}</div>
-        </div>
-    `;
-    detailHeader.insertAdjacentHTML('beforeend', dailyAvgHTML);
-    
-    // Helper function to format time from ISO string in CITY'S timezone
-    function formatTime(isoString) {
-        if (!isoString) return 'N/A';
-        // ISO string includes timezone offset, so Date will parse it correctly
-        const date = new Date(isoString);
-        // Extract time from the ISO string directly to get city's local time
-        const timeMatch = isoString.match(/T(\d{2}):(\d{2})/);
-        if (timeMatch) {
-            let hour = parseInt(timeMatch[1]);
-            const minute = timeMatch[2];
-            const ampm = hour >= 12 ? 'PM' : 'AM';
-            hour = hour % 12 || 12;
-            return `${hour}:${minute} ${ampm}`;
-        }
-        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    if (url.pathname === '/auth/logout' && request.method === 'POST') {
+      return handleLogout(request, env);
     }
     
-    function getLocalTimeFromISO(isoString) {
-        // Extract local time from ISO string (e.g., "2024-12-18T14:00-10:00" -> 2 PM)
-        const timeMatch = isoString.match(/T(\d{2}):/);
-        if (timeMatch) {
-            let hour = parseInt(timeMatch[1]);
-            const ampm = hour >= 12 ? 'PM' : 'AM';
-            const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-            return `${displayHour} ${ampm}`;
-        }
-        return new Date(isoString).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+    if (url.pathname === '/user/cities' && request.method === 'GET') {
+      return handleGetCities(request, env);
     }
     
-    // Current conditions - simplified
-    const detailGrid = document.querySelector('.detail-grid');
-    detailGrid.innerHTML = `
-        <div class="detail-item">
-            <div class="detail-label">Temperature</div>
-            <div class="detail-value">${scores.currentTemp}°F</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Conditions</div>
-            <div class="detail-value">${getWeatherLabel(scores.currentWeatherCode)}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Cloud Cover</div>
-            <div class="detail-value">${scores.currentCloudCover}%</div>
-        </div>
-    `;
-    
-    // Sunshine pattern bar with time markers
-    const patternSection = document.querySelectorAll('.detail-section')[1];
-    let patternHTML = '<h2>Today\'s Sunshine Pattern</h2>';
-    patternHTML += '<div style="font-size: 13px; color: #333; margin-bottom: 15px; background: #f0f0f0; padding: 10px 15px; border-radius: 8px; display: inline-block;">';
-    patternHTML += `${scores.daylightHours} hrs of daylight · Sunrise ${formatTime(scores.sunrise)} · Sunset ${formatTime(scores.sunset)}`;
-    patternHTML += '</div>';
-    
-    // Build pattern bar with time markers - uses FULL DAY from midnight
-    const hourly24 = scores.todayHourlyScores || scores.hourlyForecast.slice(0, 24);
-    
-    // Safety check: make sure we have data
-    if (!hourly24 || hourly24.length === 0) {
-        patternHTML += '<div style="color: #666;">No pattern data available</div>';
-        patternSection.innerHTML = patternHTML;
-    } else {
-        let segments = [];
-        let currentType = null;
-        let currentStart = 0;
-        
-        for (let i = 0; i < hourly24.length; i++) {
-            const h = hourly24[i];
-            if (!h) continue; // Skip if hour data is missing
-            
-            let type;
-            
-            if (h.score === 0) type = 'night';
-            else if (h.score >= 4.5) type = 'sunny';
-            else if (h.score >= 3.5) type = 'partly-cloudy';
-            else if (h.score >= 2) type = 'cloudy';
-            else type = 'rainy';
-            
-            if (type !== currentType) {
-                if (currentType !== null && hourly24[currentStart]) {
-                    segments.push({ 
-                        type: currentType, 
-                        start: currentStart, 
-                        end: i,
-                        startTime: hourly24[currentStart].time
-                    });
-                }
-                currentType = type;
-                currentStart = i;
-            }
-        }
-        if (currentType !== null && hourly24[currentStart]) {
-            segments.push({ 
-                type: currentType, 
-                start: currentStart, 
-                end: hourly24.length,
-                startTime: hourly24[currentStart].time
-            });
-        }
-        
-        const colors = {
-            'sunny': '#FFD700',        // Bright gold (solid)
-            'partly-cloudy': '#87CEEB', // Sky blue (solid)
-            'cloudy': '#A9A9A9',        // Gray (solid)
-            'rainy': '#4A5568',         // Dark blue-gray (solid)
-            'night': '#0f1419'          // Very dark blue (solid) - more distinct from rainy
-        };
-        
-        // Time markers above the bar
-        patternHTML += '<div style="position: relative; margin-bottom: 8px; height: 25px;">';
-        for (const seg of segments) {
-            const leftPos = (seg.start / hourly24.length * 100).toFixed(2);
-            const timeStr = getLocalTimeFromISO(seg.startTime);
-            patternHTML += `<div style="position: absolute; left: ${leftPos}%; bottom: 0; font-size: 11px; color: #333; font-weight: 500; transform: rotate(-45deg); transform-origin: bottom left; white-space: nowrap;">${timeStr}</div>`;
-        }
-        // Add end time marker at 100% (11:59 PM) - marks the end of the day
-        patternHTML += `<div style="position: absolute; left: 100%; bottom: 0; font-size: 11px; color: #333; font-weight: 500; transform: rotate(-45deg); transform-origin: bottom left; white-space: nowrap;">11:59 PM</div>`;
-        patternHTML += '</div>';
-        
-        // Pattern bar
-        patternHTML += '<div class="pattern-bar">';
-        for (const seg of segments) {
-            const width = ((seg.end - seg.start) / hourly24.length * 100).toFixed(2);
-            patternHTML += `<div class="pattern-segment" style="width: ${width}%; background: ${colors[seg.type]}"></div>`;
-        }
-        patternHTML += '</div>';
-        
-        // Legend
-        patternHTML += '<div class="pattern-legend">';
-        patternHTML += '<div class="legend-item"><div class="legend-color" style="background: #FFD700"></div> Sunny</div>';
-        patternHTML += '<div class="legend-item"><div class="legend-color" style="background: #87CEEB"></div> Partly Cloudy</div>';
-        patternHTML += '<div class="legend-item"><div class="legend-color" style="background: #A9A9A9"></div> Cloudy</div>';
-        patternHTML += '<div class="legend-item"><div class="legend-color" style="background: #4A5568"></div> Rainy</div>';
-        patternHTML += '<div class="legend-item"><div class="legend-color" style="background: #0f1419"></div> Night</div>';
-        patternHTML += '</div>';
-        
-        patternSection.innerHTML = patternHTML;
+    if (url.pathname === '/user/cities' && request.method === 'POST') {
+      return handleSaveCities(request, env);
     }
     
-    // Hourly forecast with horizontal scroll
-    const hourlySection = document.querySelectorAll('.detail-section')[2];
-    hourlySection.innerHTML = '<h2>24-Hour Forecast</h2>';
-    const hourlyGrid = document.createElement('div');
-    hourlyGrid.className = 'hourly-grid';
-    
-    hourlyGrid.innerHTML = scores.hourlyForecast.slice(0, 24).map(h => {
-        const timeStr = getLocalTimeFromISO(h.time);
-        const isDaytime = h.score > 0;
-        const bgClass = isDaytime ? 'daytime' : 'nighttime';
-        return `
-            <div class="hourly-item ${bgClass}">
-                <div class="hourly-time">${timeStr}</div>
-                <div class="hourly-icon">${getWeatherIcon(h.weatherCode)}</div>
-                <div class="hourly-score ${h.score > 0 ? getScoreColorClass(h.score) : 'night'}">${h.score > 0 ? h.score.toFixed(1) : 'N/A'}</div>
-                <div class="hourly-temp">${h.temperature}°F</div>
-            </div>
-        `;
-    }).join('');
-    
-    hourlySection.appendChild(hourlyGrid);
-    
-    // 7-day forecast - filter based on city's local date
-    const forecastSection = document.querySelectorAll('.detail-section')[3];
-    forecastSection.innerHTML = '<h2>7-Day Forecast</h2>';
-    const forecastList = document.createElement('div');
-    forecastList.className = 'forecast-list';
-    
-    // Get today's date in the CITY'S timezone from the first daily entry
-    const cityToday = scores.weekForecast[0].date;
-    const weekData = scores.weekForecast.filter(day => day.date >= cityToday);
-    
-    forecastList.innerHTML = weekData.map((day, idx) => {
-        // Parse date from YYYY-MM-DD format
-        const dateParts = day.date.split('-');
-        const dayName = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2])).toLocaleDateString('en-US', { weekday: 'short' });
-        const monthDay = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2])).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const isToday = idx === 0;
-        
-        return `
-            <div class="forecast-day">
-                <div>
-                    <div style="font-weight: 600;">${isToday ? 'Today' : dayName}</div>
-                    <div style="font-size: 13px; color: #666;">${monthDay}</div>
-                </div>
-                <div class="forecast-score ${day.avgScore > 0 ? getScoreColorClass(day.avgScore) : ''}">${day.avgScore > 0 ? day.avgScore.toFixed(1) : 'N/A'}</div>
-                <div>
-                    ${day.maxTemp}°F / ${day.minTemp}°F<br>
-                    <span style="font-size: 13px; color: #666;">Peak: ${day.peakScore} at ${day.peakHour === 0 ? '12 AM' : day.peakHour === 12 ? '12 PM' : day.peakHour > 12 ? (day.peakHour - 12) + ' PM' : day.peakHour + ' AM'}</span><br>
-                    <span style="font-size: 13px; color: #666;">${day.daylightHours} hrs daylight</span>
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    forecastSection.appendChild(forecastList);
-}
-
-function showCitiesView() {
-    document.getElementById('citiesView').style.display = 'block';
-    document.getElementById('detailView').style.display = 'none';
-    document.getElementById('backButton').style.display = 'none';
-}
-
-async function deleteCity(index) {
-    savedCities.splice(index, 1);
-    
-    // Save to server
-    await saveCitiesToServer();
-    
-    renderCityCards();
-}
-
-// ============================================================
-// SEARCH FUNCTIONALITY
-// ============================================================
-
-async function searchCities(query) {
-    if (!query || query.length < 2) {
-        document.getElementById('searchResults').style.display = 'none';
-        return;
+    if (url.pathname === '/calculate') {
+      return handleCalculate(request);
     }
     
-    try {
-        const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`);
-        const data = await response.json();
-        
-        if (data.results && data.results.length > 0) {
-            const resultsDiv = document.getElementById('searchResults');
-            resultsDiv.innerHTML = data.results.map(city => {
-                const cityJSON = JSON.stringify(city).replace(/"/g, '&quot;');
-                return `
-                    <div class="search-result-item" onclick='addCity(${cityJSON})'>
-                        <strong>${city.name}</strong>
-                        <div class="city-details">${city.admin1 ? city.admin1 + ', ' : ''}${city.country}</div>
-                    </div>
-                `;
-            }).join('');
-            resultsDiv.style.display = 'block';
-        } else {
-            const resultsDiv = document.getElementById('searchResults');
-            resultsDiv.innerHTML = '<div class="search-result-item" style="color: #999;">No cities found</div>';
-            resultsDiv.style.display = 'block';
-        }
-    } catch (error) {
-        console.error('Search error:', error);
-    }
-}
-
-async function addCity(city) {
-    document.getElementById('searchResults').style.display = 'none';
-    document.getElementById('searchInput').value = '';
-    
-    // Check 6 city limit BEFORE adding
-    if (savedCities.length >= 6) {
-        alert('You can only save up to 6 cities. Please delete one first.');
-        return;
-    }
-    
-    const exists = savedCities.find(c => c.latitude === city.latitude && c.longitude === city.longitude);
-    if (exists) {
-        renderCityCards();
-        return;
-    }
-    
-    savedCities.push({
-        name: city.name,
-        latitude: city.latitude,
-        longitude: city.longitude,
-        timezone: city.timezone,
-        admin1: city.admin1 || '',  // State/province
-        country: city.country || ''  // Country
+    return new Response('Helios API v5.2 - Production', {
+      headers: { ...corsHeaders, 'Content-Type': 'text/plain' }
     });
-    
-    // Save to server
-    await saveCitiesToServer();
-    
-    renderCityCards();
-}
-
-// ============================================================
-// INITIALIZATION
-// ============================================================
-
-document.addEventListener('DOMContentLoaded', () => {
-    // ML token is now received from server after authentication
-    // No hardcoded token in public HTML for security
-    
-    renderCityCards();
-    
-    const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('input', (e) => {
-        searchCities(e.target.value);
-    });
-    
-    document.getElementById('searchBtn').addEventListener('click', () => {
-        searchCities(searchInput.value);
-    });
-    
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.search-container')) {
-            document.getElementById('searchResults').style.display = 'none';
-        }
-    });
-});
-    </script>
-</body>
-</html>
+  }
+};
