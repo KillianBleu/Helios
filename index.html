@@ -1739,23 +1739,11 @@ async function showCityDetail(city) {
     // Build the score display with gradient circle and label - all centered
     const detailHeader = document.querySelector('.detail-header');
     const scoreClass = scores.currentScore > 0 ? getScoreColorClass(scores.currentScore) : 'night';
-    const colorMap = {
-        'excellent': 'linear-gradient(135deg, #FFD700 0%, #FF8C00 100%)',
-        'great': 'linear-gradient(135deg, #FFA500 0%, #FF7F00 100%)',
-        'good': 'linear-gradient(135deg, #FF6B9D 0%, #C44569 100%)',
-        'moderate': 'linear-gradient(135deg, #B565D8 0%, #8B3DFF 100%)',
-        'fair': 'linear-gradient(135deg, #5F9DF7 0%, #3B5998 100%)',
-        'poor': 'linear-gradient(135deg, #4A5568 0%, #2D3748 100%)',
-        'verypoor': 'linear-gradient(135deg, #5A4A42 0%, #3E2723 100%)',
-        'dismal': 'linear-gradient(135deg, #2C3E50 0%, #1A252F 100%)',
-        'night': 'linear-gradient(135deg, #1e3a5f 0%, #0f1419 100%)'
-    };
-    
     // Create centered score section HTML
     const scoreHTML = `
         <div style="text-align: center; margin-bottom: 20px;">
             <div style="font-size: 18px; color: #666; font-weight: 500; margin-bottom: 15px;">Current Helios Score:</div>
-            <div style="width: 100px; height: 100px; border-radius: 50%; background: ${colorMap[scoreClass]}; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <div class="helio-score-circle ${scoreClass}" style="width: 100px; height: 100px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
                 <span style="font-size: 42px; font-weight: 700; color: white;">${scores.currentScore > 0 ? scores.currentScore.toFixed(1) : 'N/A'}</span>
             </div>
         </div>
