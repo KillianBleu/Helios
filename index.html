@@ -867,7 +867,7 @@
     debugOverlay.id = 'debugOverlay';
     debugOverlay.innerHTML = `<header><div>Debug</div><button onclick="document.getElementById('debugOverlay').style.display='none'">Close</button></header><pre id="debugLog"></pre>`;
     document.body.appendChild(debugOverlay);
-    const DEBUG_ON = false; // set true to show overlay
+    const DEBUG_ON = new URLSearchParams(window.location.search).has('debug');
     if (!DEBUG_ON) debugOverlay.style.display = 'none';
 
     function logDebug(msg) {
